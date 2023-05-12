@@ -1,10 +1,10 @@
-# Blex.io Derivatives Trading Platform
+# Blex.io Perpetual Trading Platform   
 
-Blex.io is a decentralized derivatives trading platform built on Ethereum blockchain technology. The platform allows users to trade various crypto derivative products. Its goal is to provide users with an efficient, low-cost, secure, and reliable trading environment.
+Blex.io is a decentralized Perpetual Trading platform built on Ethereum blockchain technology. The platform allows users to trade various crypto derivative products. Its goal is to provide users with an efficient, low-cost, secure, and reliable trading environment.
 
 ## Key Features
 
-The main features of the Blex.io Derivatives Trading Platform are:
+The main features of the Blex.io Perpetual Trading Platform are:
 
 - **Decentralized**: The Blex.io platform is built on the Ethereum blockchain and has no central authority controlling it. This means that trades are transparent and secure, and not subject to the control of any single entity.
 - **Efficient**: The Blex.io platform uses smart contracts to execute trades, reducing transaction costs and time while ensuring their security and accuracy.
@@ -26,7 +26,7 @@ The **MarketRouter** contract interacts with these contracts to enable trading a
 
 ## Contract Deployment and Testing
 
-To deploy and test the Blex.io Derivatives Trading Platform, you can use the following script. In the project's root directory, run the following commands:
+To deploy and test the Blex.io Perpetual Trading Platform, you can use the following script. In the project's root directory, run the following commands:
 
     yarn install # Install all dependencies
     yarn localnode # Run a local node
@@ -37,4 +37,4 @@ Before deploying and testing, make sure you have Node.js and Truffle framework i
 
 ## Copyright
 
-The Blex.io Derivatives Trading Platform is an open-source project following the MIT license.
+The Blex.io Perpetual Trading Platform is an open-source project following the MIT license.
