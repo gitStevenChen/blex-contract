@@ -7,7 +7,6 @@
     "localnode": "yarn hardhat node --hostname 0.0.0.0",
     "local": "yarn hardhat run scripts/deploy.js --network localhost",
     "deploy": "yarn hardhat clean && time yarn hardhat run scripts/deploy.js --network avalancheTest",
-    "sync": "git checkout . && git checkout frontend0.6 && git pull && node scripts/sync.js",
     "test": "yarn hardhat clean && yarn hardhat test test/market/{long,trader}/*.js",
     "runamo": "npx hardhat run scripts/test/amo.js --network ",
     "runamc": "npx hardhat run scripts/test/amc.js --network ",
