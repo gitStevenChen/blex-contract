@@ -2,7 +2,6 @@ const {
 	deployOrConnect,
 	readDeployedContract,
 	handleTx,
-	grantRoleIfNotGranted,
 	writeContractAddresses,
 } = require("../utils/helpers");
 

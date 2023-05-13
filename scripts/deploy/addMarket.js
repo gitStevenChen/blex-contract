@@ -1,7 +1,5 @@
-const { Wallet } = require("ethers");
 const {
-    deployOrConnect2, handleTx, grantRoleIfNotGranted, deployContract,
-    isLocalHost
+    deployOrConnect2, handleTx, grantRoleIfNotGranted
 } = require("../utils/helpers");
 
 async function deployMarket({
@@ -63,12 +61,7 @@ async function deployMarket({
         orderMgr = await deploy("OrderMgr", []);
 
 
-    let market
-    if (isLocalHost()) {
-        const marketLogic = await deploy(name, "MarketLogic", [marketFactory.address], "Market")
-        market = marketLogic
-    } else
-        market = await deploy(name, "Market", [marketFactory.address])
+    let market = await deploy(name, "Market", [marketFactory.address])
 
     const positionBook = await deploy(name, "PositionBook", [marketFactory.address])
     const orderBookLong = await deploy(name, "OrderBook", [marketFactory.address], "orderBookLong")
