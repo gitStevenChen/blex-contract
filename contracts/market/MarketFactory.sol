@@ -1,23 +1,4 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) [2023] [BLEX.IO]
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 pragma experimental ABIEncoderV2;
 
@@ -88,7 +69,7 @@ contract MarketFactory is Ac, IMarketFactory {
                 if (i < markets.length - 1) {
                     markets[i] = markets[markets.length - 1];
                 }
-
+                
                 IMarketRouter mr = IMarketRouter(
                     markets[i].inputs.addrs[MarketAddressIndex.ADDR_MR]
                 );
@@ -120,6 +101,8 @@ contract MarketFactory is Ac, IMarketFactory {
     function create(
         MarketFactory.CreateInputs memory _inputs
     ) external onlyRole(MARKET_MGR_ROLE) {
+        
+        
         IMarketValid marketValid = IMarketValid(
             _inputs.addrs[MarketAddressIndex.ADDR_MV]
         );
@@ -135,7 +118,8 @@ contract MarketFactory is Ac, IMarketFactory {
             _inputs._allowClose,
             18
         );
-
+        
+        
         IOrderBook obookl = IOrderBook(
             _inputs.addrs[MarketAddressIndex.ADDR_OBL]
         );
@@ -154,15 +138,16 @@ contract MarketFactory is Ac, IMarketFactory {
             _inputs._openStoreShort,
             _inputs._closeStoreShort
         );
-
+        
         //         position
-
+        
         IPositionBook(_inputs.addrs[MarketAddressIndex.ADDR_PB]).initialize(
             _inputs._marketAddress
         );
 
+        
         //         market
-
+        
         IMarket(_inputs._marketAddress).initialize(
             _inputs.addrs,
             _inputs._name
@@ -172,14 +157,16 @@ contract MarketFactory is Ac, IMarketFactory {
         _prop.addr = _inputs._marketAddress;
         markets.push(_prop);
 
+        
         //         market router
-
+        
         IMarketRouter(_inputs.addrs[MarketAddressIndex.ADDR_MR]).addMarket(
             _inputs._marketAddress
         );
 
+        
         //         grant role - os -> ob
-
+        
         Ac(_inputs._openStoreLong).grantAndRevoke(
             ROLE_CONTROLLER,
             address(obookl)
@@ -198,8 +185,9 @@ contract MarketFactory is Ac, IMarketFactory {
             address(obooks)
         );
 
+        
         //         grant role - ob -> market
-
+        
         Ac(_inputs.addrs[MarketAddressIndex.ADDR_OBL]).grantAndRevoke(
             ROLE_CONTROLLER,
             _inputs._marketAddress
@@ -209,15 +197,17 @@ contract MarketFactory is Ac, IMarketFactory {
             _inputs._marketAddress
         );
 
+        
         //         grant role - position -> market
-
+        
         Ac(_inputs.addrs[MarketAddressIndex.ADDR_PB]).grantAndRevoke(
             ROLE_CONTROLLER,
             _inputs._marketAddress
         );
 
+        
         //         grant role - market->market router
-
+        
         Ac(_inputs._marketAddress).grantAndRevoke(
             ROLE_CONTROLLER,
             _inputs.addrs[MarketAddressIndex.ADDR_MR]
