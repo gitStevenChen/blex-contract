@@ -1,7 +1,6 @@
 const {
 	deployOrConnect,
 	readDeployedContract,
-	handleTx,
 	writeContractAddresses,
 } = require("../utils/helpers");
 

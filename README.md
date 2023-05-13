@@ -33,7 +33,7 @@ To deploy and test the Blex.io Perpetual Trading Platform, you can use the follo
     yarn local # Deploy the smart contracts to the local test node
     yarn test # Run unit tests for the smart contracts·
 
-Before deploying and testing, make sure you have Node.js and Truffle framework installed locally.
+Before deploying and testing, make sure you have Node.js and Hardhat framework installed locally.
 
 ## Copyright
 

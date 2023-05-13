@@ -1,21 +1,21 @@
 const {
-  readDeployedContract,
   handleTx,
-  isLocalHost,
-  grantRoleIfNotGranted,
+  deployOrConnect,
 } = require("./utils/helpers");
 const { deployBase } = require("./deploy_base");
 const { setFeeAndRates } = require("./fee/feeRouter");
-const { deployPositionBook } = require("./position/positionBook");
-
 const { deployMarket } = require("./deploy/addMarket");
-const { setPriceFeed } = require("./oracle/chainPriceFeed");
+const commonAddresses = require("./../commonAddress.json");
 
-const { ETH} = require("./../commonAddress.json");
+async function runDeployMarket({ symbol, isInit = false } = {}) {
+  const usdc = await deployOrConnect("USDC", [
+    "USDC",
+    "USDC",
+    "1000000000000000000",
+  ])
 
-async function runDeployMarket({ symbol = "ETH", isInit = false } = {}) {
-  let results = await deployBase({ isInit: isInit });
-  const indexToken = { address: ETH };
+  let results = await deployBase({ isInit: isInit, usdc });
+  const indexToken = { address: commonAddresses[symbol] };
   results = {
     ...results,
     indexToken: indexToken,
@@ -25,7 +25,6 @@ async function runDeployMarket({ symbol = "ETH", isInit = false } = {}) {
     name: symbol + "/USD",
   };
   const results2 = await deployMarket(results);
-  const [wallet, user0, user1] = await ethers.getSigners();
   results = { ...results, ...results2 };
   await results.setMarketLP(results);
 
@@ -43,12 +42,6 @@ async function runDeployMarket({ symbol = "ETH", isInit = false } = {}) {
     ),
     "globalValid.setMaxMarketSizeLimit"
   );
-
-  //========================
-  // testcode
-  //========================
-  console.log("collateral token address", results.collateralToken.address);
-  console.log("market reader:", results.marketReader.address);
   return results;
 }
 
