@@ -129,7 +129,7 @@ contract CoreVault is ERC4626, Ac, ICoreVault {
     function _withdraw(
         address caller,
         address receiver,
-        address owner,
+        address _owner,
         uint256 assets,
         uint256 shares
     ) internal override {
@@ -142,7 +142,7 @@ contract CoreVault is ERC4626, Ac, ICoreVault {
         super._withdraw(
             caller,
             address(vaultRouter),
-            owner,
+            _owner,
             exceeds_assets ? s_assets : assets,
             shares
         );
