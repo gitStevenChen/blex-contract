@@ -34,8 +34,8 @@ async function main() {
         "1000000000000000000",
     ]);
     await deployBase({ usdc: usdc, useMockOracle: true })
-    await runDeployMarket({ symbol: "ETH" })
-    await runDeployMarket({ symbol: "BTC" })
+    await runDeployMarket({usdc:usdc, symbol: "ETH" })
+    await runDeployMarket({usdc:usdc, symbol: "BTC" })
 }
 
 main().catch((error) => {

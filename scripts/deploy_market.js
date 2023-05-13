@@ -7,13 +7,7 @@ const { setFeeAndRates } = require("./fee/feeRouter");
 const { deployMarket } = require("./deploy/addMarket");
 const commonAddresses = require("./../commonAddress.json");
 
-async function runDeployMarket({ symbol, isInit = false } = {}) {
-  const usdc = await deployOrConnect("USDC", [
-    "USDC",
-    "USDC",
-    "1000000000000000000",
-  ])
-
+async function runDeployMarket({usdc, symbol, isInit = false } = {}) {
   let results = await deployBase({ isInit: isInit, usdc });
   const indexToken = { address: commonAddresses[symbol] };
   results = {
