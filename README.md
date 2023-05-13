@@ -37,4 +37,4 @@ Before deploying and testing, make sure you have Node.js and Hardhat framework i
 
 ## Copyright
 
-The Blex.io Perpetual Trading Platform is an open-source project following the MIT license.
+The Blex.io Perpetual Trading Platform is an open-source project following the BUSL-1.1 license.

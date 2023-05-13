@@ -28,10 +28,8 @@ module.exports = {
     
     avalancheTest: {
       url: "https://rpc.ankr.com/avalanche_fuji",
-      //url: "https://api.avax-test.network/ext/bc/C/rpc",
-      //  url: "https://endpoints.omniatech.io/v1/avax/fuji/public",
       chainId: 43113,
-      accounts: ["55edd239ea46691e69e365157c85b9c2a2a675a3e419dcc440447bdcd176a093"],
+      accounts: [""],
       gas: 8000000,
       gasPrice: 25000000000,
     },
