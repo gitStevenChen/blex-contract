@@ -9,7 +9,6 @@ contract Ac is AccessControl, Ownable {
     bytes32 internal constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 internal constant ROLE_POS_KEEPER = keccak256("ROLE_POS_KEEPER");
     bytes32 internal constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
-    bytes32 internal constant BOSS_ROLE = keccak256("BOSS_ROLE");
     bytes32 internal constant MARKET_MGR_ROLE = keccak256("MARKET_MGR_ROLE");
     bytes32 internal constant GLOBAL_MGR_ROLE = keccak256("GLOBAL_MGR_ROLE");
     bytes32 internal constant VAULT_MGR_ROLE = keccak256("VAULT_MGR_ROLE");

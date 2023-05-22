@@ -26,22 +26,11 @@ async function deployBase({ isInit = true, usdc, useMockOracle } = {}) {
   let inputs = await deployAllMarket({
     deployer: wallet,
     vaultRouter: lpContracts.vaultRouter,
-  });
-  const feeContracts = await deployFee(
-    inputs.marketFactory.address,
-    true,
-    isInit
-  );
-  await grantRoleIfNotGranted(
-    feeContracts.feeRouter,
-    "ROLE_CONTROLLER",
-    lpContracts.vaultRouter.address
-  );
-  await grantRoleIfNotGranted(
-    feeContracts.feeRouter,
-    "ROLE_CONTROLLER",
-    lpContracts.vaultReward.address
-  );
+  })
+  const feeContracts = await deployFee(inputs.marketFactory.address, true, isInit)
+  await grantRoleIfNotGranted(feeContracts.feeRouter, "ROLE_CONTROLLER", lpContracts.vaultRouter.address);
+  await grantRoleIfNotGranted(feeContracts.feeRouter, "ROLE_CONTROLLER", lpContracts.vaultReward.address);
+  await grantRoleIfNotGranted(feeContracts.feeRouter, "ROLE_CONTROLLER", lpContracts.vault.address);
 
   const configs = {
     priceDuration: 300,
@@ -75,6 +64,8 @@ async function deployBase({ isInit = true, usdc, useMockOracle } = {}) {
   await deployReferral();
   return {
     ...inputs,
+    feeRouter: feeContracts.feeRouter,
+    rewardDistributor: lpContracts.rewardDistributor,
     priceFeed: priceFeed,
     fastPrice: fastPrice,
   };

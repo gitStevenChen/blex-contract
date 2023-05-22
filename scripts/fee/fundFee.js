@@ -73,6 +73,12 @@ async function getMinRateLimit() {
 	return limit;
 }
 
+async function getFundingInterval(marketAddr) {
+	const fundFee = await readFundFeeContract();
+	const interval = await fundFee.fundingIntervals(marketAddr);
+	return interval;
+}
+
 module.exports = {
 	deployFundFee,
 	readFundFeeContract,
@@ -83,4 +89,5 @@ module.exports = {
 	getFundingFee,
 	updateCumulativeFundingRate,
 	getMinRateLimit,
+	getFundingInterval,
 };

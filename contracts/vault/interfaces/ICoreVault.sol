@@ -28,5 +28,7 @@ interface ICoreVault is IERC4626 {
 
     function getLPFee(bool isBuy) external view returns (uint256);
 
+    function setIsFreeze(bool f) external;
+
     function initialize(address _vaultRouter) external;
 }

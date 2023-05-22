@@ -24,6 +24,7 @@ contract VaultReward is Ac, ReentrancyGuard {
     IVaultRouter public vaultRouter;
     uint256 public cumulativeRewardPerToken;
     address public distributor;
+    uint256 public apr;
 
     mapping(address => uint256) public previousCumulatedRewardPerToken;
     mapping(address => uint256) public lpEarnedRewards;
@@ -44,6 +45,9 @@ contract VaultReward is Ac, ReentrancyGuard {
         distributor = _distributor;
     }
 
+    error MinSharesError();
+    error MinOutError();
+
     /**
      * @dev This function is used to buy shares in a vault using an ERC20 asset as payment.
      * @param vault The address of the vault.
@@ -58,15 +62,16 @@ contract VaultReward is Ac, ReentrancyGuard {
         uint256 amount,
         uint256 minSharesOut
     ) public returns (uint256 sharesOut) {
+        _updateRewards(msg.sender);
         SafeERC20.safeTransferFrom(
             IERC20(vault.asset()),
             msg.sender,
             address(this),
             amount
         );
-        IERC20(vault.asset()).approve(address(vaultRouter), amount);
-        _updateRewards(msg.sender);
-        sharesOut = vaultRouter.buy(vault, to, amount, minSharesOut);
+        IERC20(vault.asset()).approve(address(coreVault), amount);
+        if ((sharesOut = vault.deposit(amount, to)) < minSharesOut)
+            revert MinSharesError();
     }
 
     /**
@@ -85,9 +90,8 @@ contract VaultReward is Ac, ReentrancyGuard {
         uint256 minAssetsOut
     ) public returns (uint256 assetOut) {
         _updateRewards(msg.sender);
-        IERC20(vault).safeTransferFrom(msg.sender, address(this), amount);
-        IERC20(vault).approve(address(vaultRouter), amount);
-        assetOut = vaultRouter.sell(vault, to, amount, minAssetsOut);
+        if ((assetOut = vault.redeem(amount, to, to)) < minAssetsOut)
+            revert MinOutError();
     }
 
     event Harvest(address account, uint256 amount);
@@ -126,9 +130,9 @@ contract VaultReward is Ac, ReentrancyGuard {
      * @param _account needs to update the account address for rewards. If it is 0, the rewards for all accounts will be updated.
      */
     function _updateRewards(address _account) private {
-        uint256 blockReward = IRewardDistributor(distributor).distribute();
-        uint256 supply = coreVault.totalSupply();
-        uint256 _cumulativeRewardPerToken = cumulativeRewardPerToken;
+        uint256 blockReward = IRewardDistributor(distributor).distribute(); // 获取区块奖励
+        uint256 supply = coreVault.totalSupply(); // 获取LP供应量
+        uint256 _cumulativeRewardPerToken = cumulativeRewardPerToken; // 获取累积每个代币奖励
 
         if (supply > 0 && blockReward > 0) {
             _cumulativeRewardPerToken =
@@ -136,7 +140,7 @@ contract VaultReward is Ac, ReentrancyGuard {
                 (blockReward * PRECISION) /
                 supply;
 
-            cumulativeRewardPerToken = _cumulativeRewardPerToken;
+            cumulativeRewardPerToken = _cumulativeRewardPerToken; // 更新累积每个代币奖励
 
             emit LogUpdatePool(supply, cumulativeRewardPerToken);
         }
@@ -146,10 +150,10 @@ contract VaultReward is Ac, ReentrancyGuard {
         }
 
         if (_account != address(0)) {
-            uint256 stakedAmount = stakedAmounts(_account);
+            uint256 stakedAmount = stakedAmounts(_account); // 获取账户质押金额
             uint256 accountReward = (stakedAmount *
                 (_cumulativeRewardPerToken -
-                    previousCumulatedRewardPerToken[_account])) / PRECISION;
+                    previousCumulatedRewardPerToken[_account])) / PRECISION; // 计算账户的奖励
 
             uint256 _claimableReward = claimableReward[_account] +
                 accountReward;
@@ -183,7 +187,8 @@ contract VaultReward is Ac, ReentrancyGuard {
      * @return The amount of rewards earned by the calling account as a `uint256`.
      */
     function getLPReward() public view returns (uint256) {
-        return lpEarnedRewards[msg.sender];
+        if (lpEarnedRewards[msg.sender] == 0) return 0;
+        return lpEarnedRewards[msg.sender] - claimable(msg.sender);
     }
 
     /**
@@ -267,18 +272,12 @@ contract VaultReward is Ac, ReentrancyGuard {
         return vault.buyLpFee();
     }
 
-    /**
-     * @dev This function is used to retrieve the Annual Percentage Rate (APR) for a market.
-     * The function calculates the APR by multiplying the tokens distributed per interval by the number of intervals in a year (365), the number of hours in a day (24), and the number of seconds in an hour (3600).
-     * The result is then divided by the current LP token price, which is retrieved by calling the `getLPPrice` function.
-     * @return The APR for the market as a `uint256`.
-     */
+    function setAPR(uint256 _apr) external onlyRole(VAULT_MGR_ROLE) {
+        apr = _apr;
+    }
+
     function getAPR() external view returns (uint256) {
-        return
-            ((IRewardDistributor(distributor).tokensPerInterval() *
-                365 *
-                24 *
-                3600) * (10 ** priceDecimals())) / getAUM();
+        return apr;
     }
 
     /**

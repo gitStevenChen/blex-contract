@@ -38,9 +38,25 @@ async function setFeeAndRates(market, rates) {
 	);
 }
 
+async function updateCumulativeFundingRate(marketAddr, longSize, shortSize) {
+	const feeRouter = await readFeeRouterContract();
+	await handleTx(
+		feeRouter.updateCumulativeFundingRate(marketAddr, longSize, shortSize),
+		"feeRouter.updateCumulativeFundingRate"
+	);
+}
+
+async function getFeeAndRates(marketAddr, kind) {
+	const feeRouter = await readFeeRouterContract();
+	const feeRate = feeRouter.feeAndRates(marketAddr, kind);
+	return feeRate;
+}
+
 module.exports = {
 	deployFeeRouter,
 	readFeeRouterContract,
 	initFeeRouter,
 	setFeeAndRates,
+	getFeeAndRates,
+	updateCumulativeFundingRate,
 };

@@ -242,18 +242,18 @@ contract PositionAddMgr is MarketStorage, ReentrancyGuard, Ac {
         Order.Props memory order,
         MarketDataTypes.UpdatePositionInputs memory _params
     ) private {
+        _params._oraclePrice = getPrice(_params._isLong);
         require(order.account != address(0), "PositionAddMgr:invalid account");
         IMarketRouter(marketRouter).validateIncreasePosition(_params);
-        increasePositionWithOrders(_params);
-        require(
-            order.isMarkPriceValid(_params._oraclePrice),
-            "PositionAddMgr::triggerabove"
-        );
         (_params._isLong ? orderBookLong : orderBookShort).remove(
             order.getKey(),
             true
         );
-
+        _params.execNum += 1;
+        require(
+            order.isMarkPriceValid(_params._oraclePrice),
+            "PositionAddMgr::triggerabove"
+        );
         MarketLib.afterDeleteOrder(
             MarketOrderCallBackIntl.DeleteOrderEvent(
                 order,
@@ -266,6 +266,7 @@ contract PositionAddMgr is MarketStorage, ReentrancyGuard, Ac {
             collateralToken,
             address(this)
         );
+        increasePositionWithOrders(_params);
     }
 
     function _valid() internal view returns (IMarketValid) {

@@ -60,9 +60,9 @@ contract FundFee is Ownable, Ac {
             interval =
                 (intervals[i] / MIN_FUNDING_INTERVAL) *
                 MIN_FUNDING_INTERVAL;
-            fundingIntervals[markets[i]] = intervals[i];
+            fundingIntervals[markets[i]] = interval;
 
-            emit UpdateFundInterval(markets[i], intervals[i]);
+            emit UpdateFundInterval(markets[i], interval);
         }
     }
 

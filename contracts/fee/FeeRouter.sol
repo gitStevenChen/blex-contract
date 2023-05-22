@@ -29,7 +29,8 @@ contract FeeRouter is Ac, IFeeRouter {
     event UpdateFee(
         address indexed account,
         address indexed market,
-        int256[] fees
+        int256[] fees,
+        uint256 amount
     );
     event UpdateFeeAndRates(
         address indexed market,
@@ -97,24 +98,15 @@ contract FeeRouter is Ac, IFeeRouter {
         address token,
         int256[] memory fees
     ) external onlyController {
-        if (fees.length == 0) return;
-
-        int256 _fees;
-        for (uint256 i = 0; i < fees.length; i++) {
-            _fees += fees[i];
-        }
-        if (_fees == 0) {
+        uint256 _amount = IERC20(token).allowance(msg.sender, address(this));
+        if (_amount == 0) {
             return;
         }
 
-        uint256 _amount = TransferHelper.formatCollateral(
-            uint256(_fees),
-            IERC20Metadata(token).decimals()
-        );
         IERC20(token).safeTransferFrom(msg.sender, feeVault, _amount);
         IFeeVault(feeVault).increaseFees(msg.sender, account, fees);
 
-        emit UpdateFee(account, msg.sender, fees);
+        emit UpdateFee(account, msg.sender, fees, _amount);
     }
 
     function getExecFee(address market) external view returns (uint256) {

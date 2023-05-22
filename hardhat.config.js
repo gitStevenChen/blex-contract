@@ -6,7 +6,7 @@ try {
   if (process.env.UseTenderly == "True") {
     require("@tenderly/hardhat-tenderly");
   }
-} catch (error) { }
+} catch (error) {}
 
 require("dotenv").config();
 
@@ -25,12 +25,18 @@ module.exports = {
       gas: 3000000,
       allowUnlimitedContractSize: true,
     },
-    
     avalancheTest: {
       url: "https://rpc.ankr.com/avalanche_fuji",
       chainId: 43113,
-      accounts: [""],
+      accounts: process.env.PRIVATE_KEY,
       gas: 8000000,
+      gasPrice: 25000000000,
+    },
+    ArbitrumGoerli: {
+      url: "https://goerli-rollup.arbitrum.io/rpc",
+      chainId: 421613,
+      gas: 8000000,
+      accounts: process.env.PRIVATE_KEY,
       gasPrice: 25000000000,
     },
   },

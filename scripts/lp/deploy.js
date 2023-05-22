@@ -2,31 +2,39 @@ const {
   deployOrConnect,
   waitTx,
   grantRoleIfNotGranted,
-} = require("../utils/helpers")
+} = require("../utils/helpers");
 
-const { utils } = require("ethers")
+const { utils } = require("ethers");
 
 // call this function need deploy usdc first
-async function deployAll(usdc, isInit = true) {
-  const vault = await deployOrConnect("CoreVault", [usdc.address, "BLP", "BLP"])
-  const vaultRouter = await deployOrConnect("VaultRouter")
-  const vaultReward = await deployOrConnect("VaultReward")
-  const rewardDistributor = await deployOrConnect("RewardDistributor")
+async function deployAll(usdc, feeRouter, isInit = true) {
+  const vault = await deployOrConnect("CoreVault", [
+    usdc.address,
+    "BLP",
+    "BLP",
+  ]);
+  const vaultRouter = await deployOrConnect("VaultRouter");
+  const vaultReward = await deployOrConnect("VaultReward");
+  const rewardDistributor = await deployOrConnect("RewardDistributor");
 
   const setMarketLP = ({ market, vault } = {}) => {
     return waitTx(
       vaultRouter.setMarket(market.address, vault.address),
       "setMarket"
-    )
-  }
+    );
+  };
 
-  const initLP = async ({ vault, vaultRouter, vaultReward, feeRouter, rewardDistributor } = {}) => {
-    await waitTx(vault.initialize(vaultRouter.address), "vault.init")
-
+  const initLP = async ({
+    vault,
+    vaultRouter,
+    vaultReward,
+    feeRouter,
+    rewardDistributor,
+  } = {}) => {
     await waitTx(
       vaultRouter.initialize(vault.address, feeRouter.address),
-      "vaultRouter.init"
-    )
+      "vaultRouter.initialize"
+    );
 
     await waitTx(
       vaultReward.initialize(
@@ -35,21 +43,19 @@ async function deployAll(usdc, isInit = true) {
         feeRouter.address,
         rewardDistributor.address
       ),
-      "vaultReward.init"
-    )
+      "vaultReward.initialize"
+    );
 
     await waitTx(
-      rewardDistributor.initialize(
-        await vault.asset(),
-        vaultReward.address
-      ),
-      "vaultReward.init"
-    )
+      rewardDistributor.initialize(await vault.asset(), vaultReward.address),
+      "rewardDistributor.initialize"
+    );
+    console.log("vaultRouter", vaultRouter.address);
+    await waitTx(vault.initialize(vaultRouter.address), "vault.initialize");
 
-    await grantRoleIfNotGranted(vault, "ROLE_CONTROLLER", vaultReward.address)
-    await grantRoleIfNotGranted(vault, "ROLE_CONTROLLER", vaultRouter.address)
-
-  }
+    await grantRoleIfNotGranted(vault, "ROLE_CONTROLLER", vaultReward.address);
+    await grantRoleIfNotGranted(vault, "ROLE_CONTROLLER", vaultRouter.address);
+  };
 
   return {
     vaultRouter,
@@ -58,10 +64,10 @@ async function deployAll(usdc, isInit = true) {
     vaultReward,
     initLP,
     setMarketLP,
-    rewardDistributor
-  }
+    rewardDistributor,
+  };
 }
 
 module.exports = {
   deployAll,
-}
+};

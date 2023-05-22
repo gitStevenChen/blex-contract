@@ -10,25 +10,26 @@ const {
 	setChainPriceFeed,
 } = require("./price.js");
 
-async function deployOracle(configs, writeJson) {
+async function deployOracle(configs, writeJson, isInit = true) {
 	const chainPrice = await deployChainPriceFeed(writeJson);
 	const fastPrice = await deployFastPriceFeed(
-		configs.priceDuration, 
-		configs.maxPriceUpdateDelay, 
-		configs.minBlockInterval, 
+		configs.priceDuration,
+		configs.maxPriceUpdateDelay,
+		configs.minBlockInterval,
 		configs.maxDeviationBasisPoints,
 		writeJson
 	);
 	const price = await deployPrice(writeJson);
-	
-	await setFastPricePriceFeed(chainPrice.address);
-	await setFastPriceFeed(fastPrice.address);
-	await setChainPriceFeed(chainPrice.address);
-	
+	if (isInit) {
+		await setFastPricePriceFeed(chainPrice.address);
+		await setFastPriceFeed(fastPrice.address);
+		await setChainPriceFeed(chainPrice.address);
+	}
+
 	return {
-		price:	    price,
+		price: price,
 		chainPrice: chainPrice,
-		fastPrice:  fastPrice,
+		fastPrice: fastPrice,
 	}
 }
 

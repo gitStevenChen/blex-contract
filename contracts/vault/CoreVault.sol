@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -10,9 +11,9 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {ICoreVault, IERC4626} from "./interfaces/ICoreVault.sol";
 import {IVaultRouter} from "./interfaces/IVaultRouter.sol";
-
-import {Precision} from "../utils/TransferHelper.sol";
+import {Precision, TransferHelper} from "../utils/TransferHelper.sol";
 import {Ac} from "../ac/Ac.sol";
+import {IFeeRouter} from "../fee/interfaces/IFeeRouter.sol";
 
 // transferOwnership to timelock contract
 contract CoreVault is ERC4626, Ac, ICoreVault {
@@ -20,7 +21,9 @@ contract CoreVault is ERC4626, Ac, ICoreVault {
     using SafeERC20 for IERC20;
 
     IVaultRouter public vaultRouter;
+    bool public isFreeze = false;
 
+    IFeeRouter public feeRouter;
     mapping(address => uint256) public lastDepositAt;
     uint256 public cooldownDuration = 15 minutes;
     uint256 public constant FEE_RATE_PRECISION = Precision.FEE_RATE_PRECISION;
@@ -38,6 +41,11 @@ contract CoreVault is ERC4626, Ac, ICoreVault {
     function initialize(address _vaultRouter) public initializeLock {
         vaultRouter = IVaultRouter(_vaultRouter);
         _grantRole(ROLE_CONTROLLER, _vaultRouter);
+        feeRouter = vaultRouter.feeRouter();
+        require(
+            address(feeRouter) != address(0),
+            "vault router not initialized"
+        );
     }
 
     function setVaultRouter(address _vaultRouter) external override onlyAdmin {
@@ -111,19 +119,45 @@ contract CoreVault is ERC4626, Ac, ICoreVault {
         else return assets - computationalCosts(isBuy, assets);
     }
 
+    function _transFeeTofeeVault(
+        address account,
+        address _asset,
+        uint256 fee, // assets decimals
+        bool isBuy
+    ) private {
+        if (fee == 0) return;
+
+        uint8 kind = (isBuy ? 5 : 6);
+        int256[] memory fees = new int256[](kind + 1);
+        IERC20(_asset).approve(address(feeRouter), fee);
+        fees[kind] = int256(
+            TransferHelper.parseVaultAsset(
+                fee,
+                IERC20Metadata(_asset).decimals()
+            )
+        );
+        feeRouter.collectFees(account, _asset, fees);
+    }
+
     function _deposit(
         address caller,
         address receiver,
         uint256 assets,
         uint256 shares
     ) internal override {
+        require(false == isFreeze, "vault freeze");
         lastDepositAt[receiver] = block.timestamp;
         uint256 s_assets = super._convertToAssets(shares, Math.Rounding.Up);
         uint256 cost = assets > s_assets
             ? assets - s_assets
             : s_assets - assets;
-        vaultRouter.transFeeTofeeVault(receiver, address(asset()), cost, true);
-        super._deposit(caller, receiver, assets - cost, shares);
+        super._deposit(
+            caller,
+            receiver,
+            assets > s_assets ? assets : s_assets,
+            shares
+        );
+        _transFeeTofeeVault(receiver, address(asset()), cost, true);
     }
 
     function _withdraw(
@@ -133,22 +167,38 @@ contract CoreVault is ERC4626, Ac, ICoreVault {
         uint256 assets,
         uint256 shares
     ) internal override {
+        require(false == isFreeze, "vault freeze");
         require(
-            block.timestamp > cooldownDuration + lastDepositAt[receiver],
+            block.timestamp > cooldownDuration + lastDepositAt[_owner],
             "can't withdraw within 15min"
         );
         uint256 s_assets = super._convertToAssets(shares, Math.Rounding.Down);
         bool exceeds_assets = s_assets > assets;
+
+        // withdraw assets to user(after fee)
         super._withdraw(
             caller,
-            address(vaultRouter),
-            _owner,
-            exceeds_assets ? s_assets : assets,
+            receiver,
+            _owner, // receiver
+            exceeds_assets ? assets : s_assets,
             shares
         );
+
         uint256 cost = exceeds_assets ? s_assets - assets : assets - s_assets;
-        vaultRouter.transFeeTofeeVault(receiver, address(asset()), cost, false);
-        SafeERC20.safeTransfer(IERC20(asset()), receiver, assets);
+        // // transfer fee from vault asset to fee vault
+        _transFeeTofeeVault(_owner, address(asset()), cost, false); //ok!
+    }
+
+    event LogIsFreeze(bool isFreeze);
+
+    function setIsFreeze(bool f) external {
+        require(
+                hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
+                hasRole(ROLE_CONTROLLER, msg.sender),
+            "temporary freeze, please contact customer service"
+        );
+        isFreeze = f;
+        emit LogIsFreeze(f);
     }
 
     function verifyOutAssets(

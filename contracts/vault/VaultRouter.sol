@@ -16,23 +16,31 @@ contract VaultRouter is Ac, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    IFeeRouter feeRouter;
-    ICoreVault coreVault;
+    IFeeRouter public feeRouter;
+    ICoreVault public coreVault;
 
     EnumerableSet.AddressSet private markets;
     EnumerableSet.AddressSet private vaults;
+    bool public isFreeze = false;
 
     uint256 public totalFundsUsed;
     mapping(address => uint256) public fundsUsed;
     mapping(address => ICoreVault) public marketVaults;
     mapping(ICoreVault => address) public vaultMarkets;
 
-    bool public isFreeze = false;
-
-    error MinSharesError();
-    error MinOutError();
-
     constructor() Ac(msg.sender) {}
+
+    event LogIsFreeze(bool isFreeze);
+
+    function setIsFreeze(bool f) external {
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            "temporary freeze, please contact customer service"
+        );
+        isFreeze = f;
+        coreVault.setIsFreeze(f);
+        emit LogIsFreeze(f);
+    }
 
     function initialize(
         address _coreVault,
@@ -40,71 +48,6 @@ contract VaultRouter is Ac, ReentrancyGuard {
     ) public initializeLock {
         coreVault = ICoreVault(_coreVault);
         feeRouter = IFeeRouter(_feeRouter);
-    }
-
-    /**
-     * @dev This function allows a user to buy shares of a specified Vault using a specific amount of assets.
-     * @param vault The address of the Vault contract in which the shares will be purchased.
-     * @param to The address that will receive the shares after purchase.
-     * @param amount The amount of assets to be used to purchase the shares.
-     * @param minSharesOut The minimum number of shares to be purchased.
-     * @return sharesOut The number of shares actually purchased by the user.
-     *
-     * The function transfers the specified amount of assets from the user's address to the contract's address. The "cost" variable calculates the computational costs associated with purchasing the shares, which are then transferred to the feeVault. The remaining amount is the "buyAmount" that is approved to be transferred to the Vault. If the shares purchased are less than the specified "minSharesOut", then the function reverts with a "MinSharesError".
-     */
-    function buy(
-        ICoreVault vault,
-        address to,
-        uint256 amount,
-        uint256 minSharesOut
-    ) public nonReentrant returns (uint256 sharesOut) {
-        require(false == isFreeze, "freeze");
-        SafeERC20.safeTransferFrom(
-            IERC20(vault.asset()),
-            msg.sender,
-            address(this),
-            amount
-        );
-        IERC20(vault.asset()).approve(address(vault), amount);
-        if ((sharesOut = vault.deposit(amount, to)) < minSharesOut) {
-            revert MinSharesError();
-        }
-    }
-
-    /**
-     * @dev This function sells a given amount of assets from a specified vault to the specified recipient address.
-     * @param vault The address of the vault from which the assets will be sold.
-     * @param to The address of the recipient who will receive the assets.
-     * @param amount The amount of assets to be sold from the vault.
-     * @param minAssetsOut The minimum amount of assets to be received by the recipient.
-     * @return assetOut The amount of assets actually received by the recipient after the sale.
-     */
-    function sell(
-        ICoreVault vault,
-        address to,
-        uint256 amount,
-        uint256 minAssetsOut
-    ) external nonReentrant returns (uint256 assetOut) {
-        require(false == isFreeze, "freeze");
-
-        if (
-            (assetOut = vault.redeem(amount, address(this), msg.sender)) <
-            minAssetsOut
-        ) {
-            revert MinOutError();
-        }
-    }
-
-    event LogIsFreeze(bool isFreeze);
-
-    function setIsFreeze(bool f) external {
-        require(
-            hasRole(BOSS_ROLE, msg.sender) ||
-                hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "boss only"
-        );
-        isFreeze = f;
-        emit LogIsFreeze(f);
     }
 
     event MarketSetted(address market, address vault);
@@ -222,38 +165,6 @@ contract VaultRouter is Ac, ReentrancyGuard {
             totalFundsUsed -= amount;
         }
         emit FundsUsedUpdated(market, fundsUsed[market], totalFundsUsed);
-    }
-
-    function transFeeTofeeVault(
-        address account,
-        address asset,
-        uint256 fee,
-        bool isBuy
-    ) external {
-        require(msg.sender == address(coreVault), "transfer to fee vault");
-        _transFeeTofeeVault(account, asset, fee, isBuy);
-    }
-
-    function _transFeeTofeeVault(
-        address account,
-        address asset,
-        uint256 fee,
-        bool isBuy
-    ) private {
-        if (fee == 0) {
-            return;
-        }
-
-        uint8 kind = (isBuy ? 5 : 6);
-        int256[] memory fees = new int256[](kind + 1);
-        IERC20(asset).approve(address(feeRouter), fee);
-        fees[kind] = int256(
-            TransferHelper.parseVaultAsset(
-                fee,
-                IERC20Metadata(asset).decimals()
-            )
-        );
-        feeRouter.collectFees(account, asset, fees);
     }
 
     /**

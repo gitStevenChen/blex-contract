@@ -594,7 +594,7 @@ function copyAbis2() {
 }
 
 function copyAddressJson() {
-  const f = "contract-addresses-avalancheTest.json"
+  const f = `contract-addresses-${network}.json`
   const file = path.join(__dirname, "../..", f)
   const destFolder = path.join(
     __dirname,

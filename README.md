@@ -28,10 +28,10 @@ The **MarketRouter** contract interacts with these contracts to enable trading a
 
 To deploy and test the Blex.io Perpetual Trading Platform, you can use the following script. In the project's root directory, run the following commands:
 
-    yarn install # Install all dependencies
-    yarn localnode # Run a local node
-    yarn local # Deploy the smart contracts to the local test node
-    yarn test # Run unit tests for the smart contracts·
+    yarn install  // Install all dependencies
+    yarn localnode  // Run a local node
+    yarn local  //Deploy the smart contracts to the local test node
+    yarn test  //Run unit tests for the smart contracts·
 
 Before deploying and testing, make sure you have Node.js and Hardhat framework installed locally.
 

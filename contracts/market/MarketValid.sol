@@ -54,6 +54,7 @@ contract MarketValid is Ac, IMarketValidFuncs {
     ) external view {
         validSize(_position.size, _params._sizeDelta, _params.isOpen);
         if (_params.isOpen) {
+            validPay(_params.collateralDelta);
             validCollateralDelta(
                 _params.collateralDelta > 0 ? 1 : 2,
                 _position.collateral,
@@ -187,7 +188,7 @@ contract MarketValid is Ac, IMarketValidFuncs {
         }
     }
 
-    function validPay(uint256 _pay) external view {
+    function validPay(uint256 _pay) public view {
         if (_pay > conf.getMaxTradeAmount()) {
             revert("pay>MaxTradeAmount");
         }

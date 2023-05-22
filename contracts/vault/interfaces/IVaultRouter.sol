@@ -2,9 +2,12 @@
 pragma solidity ^0.8;
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "./ICoreVault.sol";
+import {IFeeRouter} from "../../fee/interfaces/IFeeRouter.sol";
 
 interface IVaultRouter {
     function totalFundsUsed() external view returns (uint256);
+
+    function feeRouter() external view returns (IFeeRouter);
 
     function initialize(address _coreVault, address _feeRouter) external;
 

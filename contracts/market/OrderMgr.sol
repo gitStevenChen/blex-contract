@@ -126,21 +126,19 @@ account.
         );
         uint len = _orderIDList.length;
         uint256 collateralRefund;
-        for (uint i; i < len; ) {
-            Order.Props memory _or = (
+        for (uint256 i; i < len; ++i) {
+            Order.Props[] memory _ors = (
                 _isLongList[i] ? orderBookLong : orderBookShort
-            ).remove(_account, _orderIDList[i], _isIncreaseList[i])[0];
-
-            collateralRefund += _cancelOrder(
-                _or,
-                _isLongList[i],
-                _isIncreaseList[i],
-                false,
-                false
-            );
-
-            unchecked {
-                ++i;
+            ).remove(_account, _orderIDList[i], _isIncreaseList[i]);
+            for (uint256 j; j < _ors.length; ++j) {
+                if (_ors[j].orderID == 0) continue;
+                collateralRefund += _cancelOrder(
+                    _ors[j],
+                    _isLongList[i],
+                    _isIncreaseList[i],
+                    false,
+                    false
+                );
             }
         }
         TransferHelper.transferOut(collateralToken, _account, collateralRefund);
@@ -162,11 +160,28 @@ account.
         require(_orderKey.length == _isLong.length);
         require(_isIncrease.length == _isLong.length);
         for (uint i = 0; i < _orderKey.length; i++) {
-            require(_orderKey[i] != bytes32(0), "OrderMgr:invalid order key");
-            Order.Props[] memory exeOrders = (
-                _isLong[i] ? orderBookLong : orderBookShort
-            ).remove(_orderKey[i], _isIncrease[i]);
-            _cancelOrder(exeOrders[0], _isLong[i], _isIncrease[i], true, true);
+            if (_orderKey[i] == bytes32(0)) continue;
+            IOrderBook ob = _isLong[i] ? orderBookLong : orderBookShort;
+            if (
+                false ==
+                (_isIncrease[i] ? ob.openStore() : ob.closeStore()).containsKey(
+                    _orderKey[i]
+                )
+            ) continue; //skip if order not exists
+            Order.Props[] memory exeOrders = ob.remove(
+                _orderKey[i],
+                _isIncrease[i]
+            );
+            for (uint j = 0; j < exeOrders.length; j++) {
+                if (exeOrders[j].orderID == 0) continue;
+                _cancelOrder(
+                    exeOrders[j],
+                    _isLong[i],
+                    _isIncrease[i],
+                    true,
+                    true
+                );
+            }
         }
     }
 
@@ -238,7 +253,7 @@ account.
             MarketOrderCallBackIntl.DeleteOrderEvent(
                 _order,
                 inputs,
-                uint8(isExec ? CancelReason.SysCancel : CancelReason.Canceled),
+                uint8(isExec ? CancelReason.SysCancel : CancelReason.Canceled), //6,5
                 int256(0)
             ),
             pluginGasLimit,
