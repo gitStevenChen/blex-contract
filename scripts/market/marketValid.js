@@ -1,12 +1,13 @@
 const {
+	deployContract,
 	deployOrConnect,
-	readDeployedContract,
+	readDeployedContract2,
 	handleTx,
 	writeContractAddresses,
 } = require("../utils/helpers");
 
 async function deployMarketValid(factoryAddr, writeJson) {
-	const valid = await deployOrConnect("MarketValid", [factoryAddr]);
+	const valid = await deployContract("MarketValid", [factoryAddr]);
 
 	const result = {
 		MarketValid: valid.address
@@ -17,8 +18,8 @@ async function deployMarketValid(factoryAddr, writeJson) {
 	return valid;
 }
 
-async function readMarketValidContract() {
-	const valid = await readDeployedContract("MarketValid");
+async function readMarketValidContract(symbol) {
+	const valid = await readDeployedContract2({ name: "MarketValid", symbol: symbol });
 	return valid;
 }
 
@@ -46,9 +47,11 @@ async function setMarketValidConfData(data) {
 	);
 }
 
+
 module.exports = {
 	deployMarketValid,
 	readMarketValidContract,
 	setMarketValidConf,
 	setMarketValidConfData,
+
 };

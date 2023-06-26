@@ -29,18 +29,4 @@ interface IReferral {
     function setReferrerTier(address _referrer, uint256 _tierId) external;
 
     function govSetCodeOwner(bytes32 _code, address _newAccount) external;
-
-    function emitDecreasePositionReferral(
-        address _account,
-        bytes32 _referralCode,
-        uint256 _sizeDelta,
-        uint256 _marginFeeBasisPoints
-    ) external;
-
-    function emitIncreasePositionReferral(
-        address _account,
-        bytes32 _referralCode,
-        uint256 _sizeDelta,
-        uint256 _marginFeeBasisPoints
-    ) external;
 }

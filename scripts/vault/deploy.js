@@ -1,5 +1,5 @@
 const { grantRoleIfNotGranted } = require("../utils/helpers");
-const { deployCoreVault, initialize: initCoreVault } = require("./coreVault");
+const { deployCoreVault, initCoreVault } = require("./coreVault");
 const {
   deployVaultReward,
   initialize: initVaultReward,
@@ -14,12 +14,19 @@ const {
 } = require("./rewardDistributor");
 
 async function deployVault(feeRouterAddr, asset, name, symbol, writeJson) {
-  const coreVault = await deployCoreVault(asset, name, symbol, writeJson);
+  const coreVault = await deployCoreVault(writeJson);
   const vaultReward = await deployVaultReward(writeJson);
   const vaultRouter = await deployVaultRouter(writeJson);
   const distributor = await deployRewardDistributor(writeJson);
 
-  await initCoreVault(vaultRouter.address);
+  await initCoreVault({
+    coreVault: coreVault,
+    asset,
+    name,
+    symbol,
+    vaultRouterAddr: vaultRouter.address,
+    feeRouterAddr
+  });
   await initVaultReward(
     coreVault.address,
     vaultRouter.address,

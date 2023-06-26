@@ -47,7 +47,7 @@ interface IPositionBook {
 
     function increasePosition(
         address account,
-        uint256 collateralDelta,
+        int256 collateralDelta,
         uint256 sizeDelta,
         uint256 markPrice,
         int256 fundingRate,

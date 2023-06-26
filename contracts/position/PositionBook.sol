@@ -6,15 +6,17 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./PositionStruct.sol";
 import "./PositionStore.sol";
 import "../ac/Ac.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 contract PositionBook is Ac {
     using Position for Position.Props;
+    using SafeCast for uint256;
+    using SafeCast for int256;
 
-    // market contract address
     address public market;
-    // long positionStore contract address
+
     PositionStore public longStore;
-    // short positionStore contract address
+
     PositionStore public shortStore;
 
     constructor(address factoty) Ac(factoty) {
@@ -24,7 +26,7 @@ contract PositionBook is Ac {
         _grantRole(MANAGER_ROLE, msg.sender);
     }
 
-    function initialize(address marketAddr) external initializeLock {
+    function initialize(address marketAddr) external initializer {
         require(marketAddr != address(0), "invalid market address");
         market = marketAddr;
 
@@ -136,14 +138,14 @@ contract PositionBook is Ac {
 
     function increasePosition(
         address account,
-        uint256 collateralDelta,
+        int256 collateralDelta,
         uint256 sizeDelta,
         uint256 markPrice,
         int256 fundingRate,
         bool isLong
     ) external onlyController returns (Position.Props memory result) {
         Position.Props memory _position = _getPosition(account, isLong);
-
+        require(_position.lastTime != uint32(block.timestamp));
         if (_position.size == 0) {
             _position.averagePrice = markPrice;
         }
@@ -168,7 +170,8 @@ contract PositionBook is Ac {
             result.averagePrice = _position.averagePrice;
         }
 
-        _position.collateral = _position.collateral + collateralDelta;
+        _position.collateral = (_position.collateral.toInt256() +
+            collateralDelta).toUint256();
         _position.entryFundingRate = fundingRate;
         _position.size = _position.size + sizeDelta;
         _position.isLong = isLong;
@@ -264,7 +267,7 @@ contract PositionBook is Ac {
         bool isLong
     ) private returns (Position.Props memory result) {
         Position.Props memory _position = _getPosition(account, isLong);
-
+        require(_position.lastTime != uint32(block.timestamp));
         require(_position.isValid(), "positionBook: invalid position");
         require(
             _position.collateral >= collateralDelta,
@@ -282,7 +285,7 @@ contract PositionBook is Ac {
             _updatePosition(
                 account,
                 isLong,
-                collateralDelta,
+                collateralDelta.toInt256(),
                 sizeDelta,
                 0,
                 false,
@@ -373,7 +376,7 @@ contract PositionBook is Ac {
     }
 
     function _calGlobalPosition(
-        uint256 collateralDelta,
+        int256 collateralDelta,
         uint256 sizeDelta,
         uint256 markPrice,
         bool isLong,
@@ -390,13 +393,16 @@ contract PositionBook is Ac {
             require(_averagePrice > 100, "pb:invalid global position");
             _position.averagePrice = _averagePrice;
             _position.size += sizeDelta;
-            _position.collateral += collateralDelta;
+            _position.collateral = (_position.collateral.toInt256() +
+                collateralDelta).toUint256();
+            _position.isLong = isLong;
+            _position.lastTime = uint32(block.timestamp);
 
             return _position;
         }
 
         _position.size -= sizeDelta;
-        _position.collateral -= collateralDelta;
+        _position.collateral -= collateralDelta.toUint256();
 
         return _position;
     }
@@ -432,7 +438,7 @@ contract PositionBook is Ac {
     function _updatePosition(
         address account,
         bool isLong,
-        uint256 collateralDelta,
+        int256 collateralDelta,
         uint256 sizeDelta,
         uint256 markPrice,
         bool isOpen,
@@ -457,7 +463,7 @@ contract PositionBook is Ac {
         bool isLong
     ) private {
         Position.Props memory _globalPosition = _calGlobalPosition(
-            collateralDelta,
+            collateralDelta.toInt256(),
             sizeDelta,
             0,
             isLong,

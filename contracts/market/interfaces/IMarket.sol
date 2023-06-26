@@ -7,6 +7,8 @@ import {IOrderBook} from "../../order/interface/IOrderBook.sol";
 import "../../order/OrderStruct.sol";
 import {MarketDataTypes} from "../MarketDataTypes.sol";
 import "./../../position/PositionStruct.sol";
+import {IOrderStore} from "../../order/interface/IOrderStore.sol";
+
 interface IMarketStorage {
     function marketValid() external view returns (address);
 
@@ -32,6 +34,14 @@ interface IMarketStorage {
 }
 
 interface IMarket is IMarketStorage {
+    struct OrderExec {
+        address market;
+        address account;
+        uint64 orderID;
+        bool isIncrease;
+        bool isLong;
+    }
+
     //=============================
     //user actions
     //=============================
@@ -64,6 +74,8 @@ interface IMarket is IMarketStorage {
         MarketDataTypes.UpdatePositionInputs memory _params
     ) external;
 
+    function execOrderByIndex(OrderExec memory order) external;
+
     function liquidatePositions(
         address[] memory accounts,
         bool _isLong
@@ -78,9 +90,16 @@ interface IMarket is IMarketStorage {
 
     function priceFeed() external view returns (address);
 
+    function indexToken() external view returns (address);
+
     function getPositions(
         address account
     ) external view returns (Position.Props[] memory _poss);
+
+    function orderStore(
+        bool isLong,
+        bool isOpen
+    ) external view returns (IOrderStore);
 }
 
 library MarketAddressIndex {

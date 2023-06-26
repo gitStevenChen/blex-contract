@@ -1,11 +1,14 @@
+
 const {
 	deployOrConnect,
 	readDeployedContract,
+	handleTx,
 	writeContractAddresses,
+	deployContract
 } = require("../utils/helpers");
 
 async function deployPositionAddMgr(writeJson) {
-	const positionAddMgr = await deployOrConnect("PositionAddMgr", []);
+	const positionAddMgr = await deployContract("PositionAddMgr", []);
 
 	const result = {
 		PositionAddMgr: positionAddMgr.address
@@ -20,6 +23,8 @@ async function readPositionAddMgrContract() {
 	const positionAddMgr = await readDeployedContract("PositionAddMgr");
 	return positionAddMgr;
 }
+
+
 
 module.exports = {
 	deployPositionAddMgr,

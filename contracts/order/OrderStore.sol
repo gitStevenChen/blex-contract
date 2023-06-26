@@ -23,7 +23,7 @@ contract OrderStore is Ac {
 
     constructor(address _f) Ac(_f) {}
 
-    function initialize(bool _isLong) external initializeLock {
+    function initialize(bool _isLong) external initializer {
         isLong = _isLong;
     }
 
@@ -55,7 +55,9 @@ contract OrderStore is Ac {
     function remove(
         bytes32 key
     ) external onlyController returns (Order.Props memory order) {
-        if (orderKeys.contains(key)) order = _remove(key);
+        if (orderKeys.contains(key)) {
+            order = _remove(key);
+        }
     }
 
     function _remove(bytes32 key) internal returns (Order.Props memory _order) {

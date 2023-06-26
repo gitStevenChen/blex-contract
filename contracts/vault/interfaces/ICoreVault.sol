@@ -30,5 +30,11 @@ interface ICoreVault is IERC4626 {
 
     function setIsFreeze(bool f) external;
 
-    function initialize(address _vaultRouter) external;
+    function initialize(
+        address _asset,
+        string memory _name,
+        string memory _symbol,
+        address _vaultRouter,
+        address
+    ) external;
 }

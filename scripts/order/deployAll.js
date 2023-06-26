@@ -1,9 +1,9 @@
 const {
-	deployOrderBook : deployOB,
+	deployOrderBook: deployOB,
 	initialize,
 } = require("./orderBook.js");
-const { 
-	deployOrderStore, 
+const {
+	deployOrderStore,
 } = require("./orderStore.js");
 
 async function deployOrderBook(factoryAddr, isLong, writeJson) {
@@ -15,13 +15,13 @@ async function deployOrderBook(factoryAddr, isLong, writeJson) {
 		orderStoreKey1 = "2";
 		orderStoreKey2 = "3";
 		orderBookKey = "Short";
-  	}
+	}
 
 	const orderStoreOpen = await deployOrderStore(factoryAddr, writeJson, orderStoreKey1);
 	const orderStoreClose = await deployOrderStore(factoryAddr, writeJson, orderStoreKey2);
 
 	const orderBook = await deployOB(factoryAddr, writeJson, orderBookKey);
-	// await initialize(orderStoreOpen, orderStoreOpen, isLong, orderBookKey);
+
 
 	return {
 		orderBook: orderBook,

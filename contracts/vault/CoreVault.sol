@@ -5,18 +5,18 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {ERC20} from "./ERC20.sol";
+import {ERC4626} from "./ERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {ICoreVault, IERC4626} from "./interfaces/ICoreVault.sol";
 import {IVaultRouter} from "./interfaces/IVaultRouter.sol";
+import "hardhat/console.sol";
 import {Precision, TransferHelper} from "../utils/TransferHelper.sol";
-import {Ac} from "../ac/Ac.sol";
+import {AcUpgradable} from "../ac/AcUpgradable.sol";
 import {IFeeRouter} from "../fee/interfaces/IFeeRouter.sol";
 
-// transferOwnership to timelock contract
-contract CoreVault is ERC4626, Ac, ICoreVault {
+contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
@@ -25,30 +25,52 @@ contract CoreVault is ERC4626, Ac, ICoreVault {
 
     IFeeRouter public feeRouter;
     mapping(address => uint256) public lastDepositAt;
-    uint256 public cooldownDuration = 15 minutes;
+    uint256 public cooldownDuration;
     uint256 public constant FEE_RATE_PRECISION = Precision.FEE_RATE_PRECISION;
-    uint256 public buyLpFee = (2 * FEE_RATE_PRECISION) / 100;
-    uint256 public sellLpFee = (1 * FEE_RATE_PRECISION) / 100;
+    uint256 public buyLpFee;
+    uint256 public sellLpFee;
     event CoolDownDurationUpdated(uint256 duration);
     event LPFeeUpdated(bool isBuy, uint256 fee);
 
-    constructor(
+    event DepositAsset(
+        address indexed sender,
+        address indexed owner,
+        uint256 assets,
+        uint256 shares,
+        uint256 fee
+    );
+
+    event WithdrawAsset(
+        address indexed sender,
+        address indexed receiver,
+        address indexed owner,
+        uint256 assets,
+        uint256 shares,
+        uint256 fee
+    );
+
+    function initialize(
         address _asset,
         string memory _name,
-        string memory _symbol
-    ) ERC4626(IERC20(_asset)) ERC20(_name, _symbol) Ac(msg.sender) {}
+        string memory _symbol,
+        address _vaultRouter,
+        address _feeRouter
+    ) external initializer {
+        ERC20._initialize(_name, _symbol);
+        ERC4626._initialize(IERC20(_asset));
+        AcUpgradable._initialize(msg.sender);
 
-    function initialize(address _vaultRouter) public initializeLock {
         vaultRouter = IVaultRouter(_vaultRouter);
         _grantRole(ROLE_CONTROLLER, _vaultRouter);
-        feeRouter = vaultRouter.feeRouter();
-        require(
-            address(feeRouter) != address(0),
-            "vault router not initialized"
-        );
+        feeRouter = IFeeRouter(_feeRouter);
+
+        cooldownDuration = 15 minutes;
+        sellLpFee = (1 * FEE_RATE_PRECISION) / 100;
     }
 
     function setVaultRouter(address _vaultRouter) external override onlyAdmin {
+        if (address(vaultRouter) != address(0))
+            _revokeRole(ROLE_CONTROLLER, address(vaultRouter));
         vaultRouter = IVaultRouter(_vaultRouter);
         _grantRole(ROLE_CONTROLLER, _vaultRouter);
     }
@@ -122,7 +144,7 @@ contract CoreVault is ERC4626, Ac, ICoreVault {
     function _transFeeTofeeVault(
         address account,
         address _asset,
-        uint256 fee, // assets decimals
+        uint256 fee,
         bool isBuy
     ) private {
         if (fee == 0) return;
@@ -139,6 +161,8 @@ contract CoreVault is ERC4626, Ac, ICoreVault {
         feeRouter.collectFees(account, _asset, fees);
     }
 
+    uint256 constant NUMBER_OF_DEAD_SHARES = 1000;
+
     function _deposit(
         address caller,
         address receiver,
@@ -151,13 +175,16 @@ contract CoreVault is ERC4626, Ac, ICoreVault {
         uint256 cost = assets > s_assets
             ? assets - s_assets
             : s_assets - assets;
-        super._deposit(
-            caller,
-            receiver,
-            assets > s_assets ? assets : s_assets,
-            shares
-        );
+        uint256 _assets = assets > s_assets ? assets : s_assets;
+
+        if (totalSupply() == 0) {
+            _mint(address(0), NUMBER_OF_DEAD_SHARES);
+            shares -= NUMBER_OF_DEAD_SHARES;
+        }
+        super._deposit(caller, receiver, _assets, shares);
         _transFeeTofeeVault(receiver, address(asset()), cost, true);
+
+        emit DepositAsset(caller, receiver, assets, shares, cost);
     }
 
     function _withdraw(
@@ -175,36 +202,30 @@ contract CoreVault is ERC4626, Ac, ICoreVault {
         uint256 s_assets = super._convertToAssets(shares, Math.Rounding.Down);
         bool exceeds_assets = s_assets > assets;
 
-        // withdraw assets to user(after fee)
-        super._withdraw(
-            caller,
-            receiver,
-            _owner, // receiver
-            exceeds_assets ? assets : s_assets,
-            shares
-        );
+        uint256 _assets = exceeds_assets ? assets : s_assets;
+
+        super._withdraw(caller, receiver, _owner, _assets, shares);
 
         uint256 cost = exceeds_assets ? s_assets - assets : assets - s_assets;
-        // // transfer fee from vault asset to fee vault
-        _transFeeTofeeVault(_owner, address(asset()), cost, false); //ok!
+
+        _transFeeTofeeVault(_owner, address(asset()), cost, false);
+
+        emit WithdrawAsset(caller, receiver, _owner, assets, shares, cost);
     }
 
     event LogIsFreeze(bool isFreeze);
 
-    function setIsFreeze(bool f) external {
-        require(
-                hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-                hasRole(ROLE_CONTROLLER, msg.sender),
-            "temporary freeze, please contact customer service"
-        );
+    function setIsFreeze(bool f) external onlyFreezer {
         isFreeze = f;
         emit LogIsFreeze(f);
     }
 
     function verifyOutAssets(
-        address /* to */,
-        uint256 /* amount */
-    ) external pure override returns (bool) {
+        address to,
+        uint256 amount
+    ) external view override returns (bool) {
         return true;
     }
+
+    uint256[50] private ______gap;
 }

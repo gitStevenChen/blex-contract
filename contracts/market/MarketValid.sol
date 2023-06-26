@@ -44,6 +44,7 @@ contract MarketValid is Ac, IMarketValidFuncs {
     using MarketDataTypes for MarketDataTypes.UpdatePositionInputs;
 
     IMarketValid.Props public conf;
+    uint256 private constant DECIMALS = 10000;
 
     constructor(address _f) Ac(_f) {}
 
@@ -90,20 +91,17 @@ contract MarketValid is Ac, IMarketValidFuncs {
         int256 _fees
     ) public view override {
         IMarketValid.Props memory _conf = conf;
-        if (busType > 2 && _sizeDelta == _size) {
-            if (!_conf.getAllowClose()) {
-                revert("MarketOfflineErr");
-            }
-            return;
-        }
+        if (
+            (!_conf.getAllowOpen() && busType <= 2) ||
+            (!_conf.getAllowClose() && busType > 2)
+        ) revert("MarketOfflineErr");
+        if (busType > 2 && _sizeDelta == _size) return;
         uint256 newCollateral = (
             busType < 3
                 ? (_collateral + _collateralDelta)
                 : (_collateral - _collateralDelta)
         );
-        if (busType == 3 && newCollateral == 0) {
-            return;
-        }
+        if (busType == 3 && newCollateral == 0) return;
 
         if (_fees > 0) {
             newCollateral -= uint256(_fees);
@@ -111,33 +109,22 @@ contract MarketValid is Ac, IMarketValidFuncs {
             newCollateral += uint256(-_fees);
         }
 
-        if (busType == 1) {
-            if (!_conf.getAllowOpen()) {
-                revert("MarketOfflineErr");
-            }
-            if (_collateralDelta < _conf.getMinPay()) {
-                revert("CollateralValidErr");
-            }
-        } else if (busType > 2) {
-            if (!_conf.getAllowClose()) {
-                revert("MarketOfflineErr");
-            }
-            if (newCollateral < uint256(_conf.getMinCollateral())) {
-                revert("CollateralValidErr");
-            }
+        if (
+            (_collateral == 0 &&
+                busType == 1 &&
+                _collateralDelta < _conf.getMinPay()) ||
+            (busType > 2 && newCollateral < uint256(_conf.getMinCollateral()))
+        ) {
+            revert("CollateralValidErr");
         }
 
         uint256 newSize = _size;
-        if (busType == 1) {
-            newSize += _sizeDelta;
-        } else if (busType == 3) {
-            newSize -= _sizeDelta;
-        }
+        if (busType == 1) newSize += _sizeDelta;
+        else if (busType == 3) newSize -= _sizeDelta;
 
         uint256 lev = newSize / newCollateral;
-        if (lev > _conf.getMaxLev() || lev < _conf.getMinLev()) {
-            revert("CollateralValidErr");
-        }
+        if (lev > _conf.getMaxLev() || lev < _conf.getMinLev())
+            revert("Lev exceed");
     }
 
     function validTPSL(
@@ -211,14 +198,16 @@ contract MarketValid is Ac, IMarketValidFuncs {
         require(conf.getDecrOrderLmt() >= decrOrderCount + 1, "trigger>10");
 
         validSize(_size, _sizeDelta, false);
-        validCollateralDelta(
-            3,
-            _collateral,
-            _collateralDelta,
-            _size,
-            _sizeDelta,
-            fees
-        );
+
+        if (conf.getEnableValidDecrease())
+            validCollateralDelta(
+                3,
+                _collateral,
+                _collateralDelta,
+                _size,
+                _sizeDelta,
+                fees
+            );
     }
 
     function getCollateralRange(
@@ -369,8 +358,8 @@ contract MarketValid is Ac, IMarketValidFuncs {
         }
 
         if (
-            uint256(remainingCollateral) * conf.getMaxLev() * 10000 <
-            size * 10000
+            uint256(remainingCollateral) * conf.getMaxLev() * DECIMALS <
+            size * DECIMALS
         ) {
             if (_raise) {
                 revert("Vault: maxLeverage exceeded");

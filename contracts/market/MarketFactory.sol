@@ -197,10 +197,6 @@ contract MarketFactory is Ac, IMarketFactory {
             ROLE_CONTROLLER,
             _inputs.addrs[MarketAddressIndex.ADDR_MR]
         );
-
-        Ac(_inputs.addrs[MarketAddressIndex.ADDR_FR]).grantAndRevoke(
-            ROLE_CONTROLLER,
-            _inputs._marketAddress
-        );
+       
     }
 }

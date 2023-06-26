@@ -17,7 +17,7 @@ import {MarketPositionCallBackIntl, MarketOrderCallBackIntl} from "./interfaces/
 import {MarketDataTypes} from "./MarketDataTypes.sol";
 import {Position} from "../position/PositionStruct.sol";
 import {IReferral} from "../referral/interfaces/IReferral.sol";
-import {TransferHelper} from "./../utils/TransferHelper.sol";
+import {TransferHelper, IERC20Decimals} from "./../utils/TransferHelper.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./MarketStorage.sol";
 import "../ac/Ac.sol";
@@ -32,6 +32,20 @@ contract OrderMgr is MarketStorage, ReentrancyGuard, Ac {
     using MarketDataTypes for MarketDataTypes.UpdatePositionInputs;
 
     constructor() Ac(address(0)) {}
+
+    function setContracts(address[] memory addrs) external {
+        positionBook = IPositionBook(addrs[0]);
+        orderBookLong = IOrderBook(addrs[1]);
+        orderBookShort = IOrderBook(addrs[2]);
+        marketValid = addrs[3];
+        priceFeed = addrs[4];
+        positionSubMgr = addrs[5];
+        positionAddMgr = addrs[6];
+        feeRouter = IFeeRouter(addrs[7]);
+        vaultRouter = addrs[8];
+        globalValid = addrs[9];
+        orderMgr = addrs[10];
+    }
 
     /**
      * The `updateOrder` function is used to update an order on the order book. It validates inputs,
@@ -48,7 +62,17 @@ contract OrderMgr is MarketStorage, ReentrancyGuard, Ac {
             _valid().validPay(_vars.pay());
         }
         if (false == _vars.isOpen)
-            _vars._oraclePrice = getPrice(!_vars._isLong);
+        _vars._oraclePrice = getPrice(_vars._isLong == _vars.isOpen);
+        if (_vars.isFromMarket()) {
+            if (_vars.isOpen == _vars._isLong)
+                _vars._order.price = (_vars._order.price +
+                    (_vars._order.price * _vars.slippage()) /
+                    MarketConfigStruct.DENOMINATOR_SLIPPAGE).toUint128();
+            else
+                _vars._order.price = (_vars._order.price -
+                    (_vars._order.price * _vars.slippage()) /
+                    MarketConfigStruct.DENOMINATOR_SLIPPAGE).toUint128();
+        }
 
         IOrderBook ob = _vars._isLong ? orderBookLong : orderBookShort;
         if (_vars.isCreate && _vars.isOpen) {
@@ -202,10 +226,14 @@ account.
         bool isExec
     ) internal returns (uint256 collateralRefund) {
         uint256 execFee = isExec ? feeRouter.getExecFee(address(this)) : 0;
+        uint256 feeAmount = TransferHelper.formatCollateral(
+            uint256(execFee),
+            IERC20Decimals(collateralToken).decimals()
+        );
+
         if (_isIncrease) {
             if (execFee > 0) {
-                IERC20(collateralToken).approve(address(feeRouter), execFee);
-
+                IERC20(collateralToken).approve(address(feeRouter), feeAmount);
                 int256[] memory _fees = new int256[](4);
                 _fees[3] = int256(execFee);
                 feeRouter.collectFees(_order.account, collateralToken, _fees);
@@ -238,7 +266,7 @@ account.
             if (decreasedCollateral >= execFee) {
                 int256[] memory _fees = new int256[](4);
                 _fees[3] = int256(execFee);
-                IERC20(collateralToken).approve(address(feeRouter), execFee);
+                IERC20(collateralToken).approve(address(feeRouter), feeAmount);
                 feeRouter.collectFees(_order.account, collateralToken, _fees);
             }
         }

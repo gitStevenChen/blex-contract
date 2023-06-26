@@ -13,6 +13,7 @@ import {MarketDataTypes} from "../market/MarketDataTypes.sol";
 
 contract OrderBook is IOrderBook, Ac {
     using Order for Order.Props;
+    using MarketDataTypes for MarketDataTypes.UpdateOrderInputs;
 
     IOrderStore public override openStore;
     IOrderStore public override closeStore;
@@ -24,7 +25,7 @@ contract OrderBook is IOrderBook, Ac {
         bool _isLong,
         address _openStore,
         address _closeStore
-    ) external initializeLock {
+    ) external initializer {
         isLong = _isLong;
         openStore = IOrderStore(_openStore);
         openStore.initialize(_isLong);
@@ -84,6 +85,24 @@ contract OrderBook is IOrderBook, Ac {
         }
     }
 
+    function setupTriggerAbove(
+        MarketDataTypes.UpdateOrderInputs memory _vars,
+        Order.Props memory _order
+    ) private pure returns (Order.Props memory) {
+        if (_vars.isFromMarket()) {
+            _order.setTriggerAbove(_vars.isOpen == !_vars._isLong);
+        } else {
+            if (_vars.isOpen) {
+                _order.setTriggerAbove(!_vars._isLong);
+            } else if (_vars._order.triggerAbove == 0) {
+                _order.setTriggerAbove(_vars._oraclePrice < _order.price);
+            } else {
+                _order.triggerAbove = _vars._order.triggerAbove;
+            }
+        }
+        return _order;
+    }
+
     /*********************
             增
     ***********************/
@@ -94,16 +113,13 @@ contract OrderBook is IOrderBook, Ac {
         for (uint256 i; i < _vars.length; ) {
             Order.Props memory _order = _vars[i]._order;
             _order.version = Order.STRUCT_VERSION;
-            _order.orderID = uint64(openStore.generateID(_order.account));
-            if (_vars[i].isOpen) {
-                _order.setTriggerAbove(!_vars[i]._isLong);
-            } else if (_vars[i]._order.triggerAbove == 0) {
-                _order.setTriggerAbove(_vars[i]._oraclePrice < _order.price);
-            } else {
-                _order.triggerAbove = _vars[i]._order.triggerAbove;
-            }
+            _order.orderID = uint64(
+                (_vars[i].isOpen ? openStore : closeStore).generateID(
+                    _order.account
+                )
+            );
+            _order = setupTriggerAbove(_vars[i], _order);
             _orders[i] = _order;
-
             unchecked {
                 ++i;
             }
@@ -129,7 +145,7 @@ contract OrderBook is IOrderBook, Ac {
             改
     ***********************/
     function update(
-        MarketDataTypes.UpdateOrderInputs memory _vars /*nonReentrant*/
+        MarketDataTypes.UpdateOrderInputs memory _vars
     ) external override onlyController returns (Order.Props memory _order) {
         bytes32 okey = _vars._order.getKey();
         IOrderStore os = _vars.isOpen ? openStore : closeStore;
@@ -141,6 +157,8 @@ contract OrderBook is IOrderBook, Ac {
         );
 
         _order.price = _vars._order.price;
+
+        _order = setupTriggerAbove(_vars, _order);
 
         if (_vars.isOpen) {
             _order.setTakeprofit(_vars._order.getTakeprofit());

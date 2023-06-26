@@ -13,9 +13,9 @@ async function deployFastPriceFeed(
 	writeJson
 ) {
 	const fastPrice = await deployOrConnect("FastPriceFeed", [
-		priceDuration, 
-		maxPriceUpdateDelay, 
-		minBlockInterval, 
+		priceDuration,
+		maxPriceUpdateDelay,
+		minBlockInterval,
 		maxDeviationBasisPoints
 	]);
 
@@ -137,11 +137,11 @@ async function setPriceDataInterval(priceDataInterval) {
 
 	await handleTx(
 		fastPrice.setPriceDataInterval(priceDataInterval),
-		"fastPrice.setMaxCumulativeDeltaDiffs"
+		"fastPrice.setPriceDataInterval"
 	);
 }
 
-// tokens and tokenPrecisions are array list
+
 async function setFastPriceTokens(tokens, tokenPrecisions) {
 	const fastPrice = await readDeployedContract("FastPriceFeed");
 
@@ -151,7 +151,7 @@ async function setFastPriceTokens(tokens, tokenPrecisions) {
 	);
 }
 
-// tokens and prices are array list
+
 async function setFastPricePrices(tokens, prices, timestamp) {
 	const fastPrice = await readDeployedContract("FastPriceFeed");
 

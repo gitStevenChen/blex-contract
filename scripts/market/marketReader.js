@@ -1,4 +1,5 @@
 const {
+	deployContract,
 	deployOrConnect,
 	readDeployedContract,
 	handleTx,
@@ -6,7 +7,7 @@ const {
 } = require("../utils/helpers");
 
 async function deployMarketReader(factoryAddr, writeJson) {
-	const reader = await deployOrConnect("MarketReader", [factoryAddr]);
+	const reader = await deployContract("MarketReader", [factoryAddr]);
 
 	const result = {
 		MarketReader: reader.address

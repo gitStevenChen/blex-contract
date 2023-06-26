@@ -148,7 +148,7 @@ contract PositionAddMgr is MarketStorage, ReentrancyGuard, Ac {
             );
             positionBook.increasePosition(
                 _params._account,
-                collD.toUint256(),
+                collD,
                 _params._sizeDelta,
                 _params._oraclePrice,
                 fr,
@@ -161,8 +161,8 @@ contract PositionAddMgr is MarketStorage, ReentrancyGuard, Ac {
         MarketDataTypes.UpdatePositionInputs memory _params,
         Position.Props memory _position
     ) private returns (int256 collD) {
-        MarketLib._updateCumulativeFundingRate(positionBook, feeRouter);
-        _params._market = address(this);
+        MarketLib._updateCumulativeFundingRate(positionBook, feeRouter); //1
+        _params._market = address(this); 
         int256[] memory _fees = feeRouter.getFees(_params, _position);
         int256 _totalfee = _fees.totoalFees();
 
@@ -218,11 +218,11 @@ contract PositionAddMgr is MarketStorage, ReentrancyGuard, Ac {
             IFeeRouter(feeRouter).withdraw(
                 collateralToken,
                 address(this),
-                uint(fees * -1)
+                uint256(fees * -1)
             );
         } else if (fees > 0) {
             uint256 amount = TransferHelper.formatCollateral(
-                uint(fees),
+                uint256(fees),
                 IERC20Decimals(collateralToken).decimals()
             );
             IERC20(collateralToken).approve(address(feeRouter), amount);

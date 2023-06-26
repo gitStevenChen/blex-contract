@@ -1,19 +1,17 @@
 const {
-	deployOrConnect,
+	deployContract,
 	readDeployedContract,
 	handleTx,
 	writeContractAddresses,
 } = require("../utils/helpers");
+const { readMarketContract } = require("./market")
 
 async function deployOrderMgr(writeJson) {
-	const mgr = await deployOrConnect("OrderMgr", []);
-
+	const mgr = await deployContract("OrderMgr", []);
 	const result = {
 		OrderMgr: mgr.address
 	};
-	if (writeJson)
-		writeContractAddresses(result)
-
+	if (writeJson) writeContractAddresses(result)
 	return mgr;
 }
 

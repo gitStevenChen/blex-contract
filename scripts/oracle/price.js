@@ -40,6 +40,14 @@ async function setFastPriceEnabled(isEnabled) {
 	);
 }
 
+async function setIsGmxPriceEnabled(isEnabled) {
+	const oracle = await readDeployedContract("Price");
+	await handleTx(
+		oracle.setIsGmxPriceEnabled(isEnabled),
+		"oracle.setIsGmxPriceEnabled"
+	);
+}
+
 async function setFastPriceFeed(fastPriceAddr) {
 	const oracle = await readDeployedContract("Price");
 	await handleTx(
@@ -53,6 +61,14 @@ async function setChainPriceFeed(chainPriceAddr) {
 	await handleTx(
 		oracle.setChainPriceFeed(chainPriceAddr),
 		"oracle.setChainPriceFeed"
+	);
+}
+
+async function setGmxPriceFeed(gmxPriceAddr) {
+	const oracle = await readDeployedContract("Price");
+	await handleTx(
+		oracle.setGmxPriceFeed(gmxPriceAddr),
+		"oracle.setGmxPriceFeed"
 	);
 }
 
@@ -95,6 +111,8 @@ module.exports = {
 	setFastPriceEnabled,
 	setFastPriceFeed,
 	setChainPriceFeed,
+	setGmxPriceFeed,
+	setIsGmxPriceEnabled,
 	setOracleSpreadBasisPoints,
 	setSpreadThresholdBasisPoints,
 	setMaxStrictPriceDeviation,

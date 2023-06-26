@@ -13,10 +13,10 @@ function bigNumberify(n) {
 function expandDecimals(n, decimals) {
   return bigNumberify(n).mul(bigNumberify(10).pow(decimals))
 }
-function to_eth(value){
+function to_eth(value) {
   return ethers.utils.formatEther(value);
 }
-function to_wei(value){
+function to_wei(value) {
   return ethers.utils.parseEther(value);
 }
 async function send(provider, method, params = []) {
@@ -53,11 +53,11 @@ async function getBlockTime(provider) {
 }
 
 async function getTxnBalances(provider, user, txn, callback) {
-    const balance0 = await provider.getBalance(user.address)
-    const tx = await txn()
-    const fee = await getNetworkFee(provider, tx)
-    const balance1 = await provider.getBalance(user.address)
-    callback(balance0, balance1, fee)
+  const balance0 = await provider.getBalance(user.address)
+  const tx = await txn()
+  const fee = await getNetworkFee(provider, tx)
+  const balance1 = await provider.getBalance(user.address)
+  callback(balance0, balance1, fee)
 }
 
 function print(label, value, decimals) {
@@ -83,7 +83,7 @@ function getPriceBitArray(prices) {
       }
 
       const price = new BN(prices[index])
-      if (price.gt(new BN("2147483648"))) { // 2^31
+      if (price.gt(new BN("2147483648"))) {
         throw new Error(`price exceeds bit limit ${price.toString()}`)
       }
       priceBits = priceBits.or(price.shln(j * 32))
@@ -111,7 +111,7 @@ function getPriceBits(prices) {
     }
 
     const price = new BN(prices[index])
-    if (price.gt(new BN("2147483648"))) { // 2^31
+    if (price.gt(new BN("2147483648"))) {
       throw new Error(`price exceeds bit limit ${price.toString()}`)
     }
 

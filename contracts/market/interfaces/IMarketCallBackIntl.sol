@@ -4,7 +4,17 @@ pragma solidity ^0.8.17;
 import "../MarketDataTypes.sol";
 import "../../position/PositionStruct.sol";
 
-interface MarketPositionCallBackIntl {
+interface MarketCallBackIntl {
+    struct Calls {
+        bool updatePosition;
+        bool updateOrder;
+        bool deleteOrder;
+    }
+
+    function getHooksCalls() external pure returns (Calls memory);
+}
+
+interface MarketPositionCallBackIntl is MarketCallBackIntl {
     //=====================================
     //      UPDATE POSITION
     //=====================================
@@ -20,7 +30,7 @@ interface MarketPositionCallBackIntl {
     function updatePositionCallback(UpdatePositionEvent memory _event) external;
 }
 
-interface MarketOrderCallBackIntl {
+interface MarketOrderCallBackIntl is MarketCallBackIntl {
     //=====================================
     //      UPDATE ORDER
     //=====================================

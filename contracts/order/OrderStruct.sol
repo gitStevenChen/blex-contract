@@ -56,17 +56,13 @@ library Order {
         Props memory order,
         uint256 markPrice
     ) internal pure returns (bool) {
-        return order.getTriggerAbove() == markPrice > uint256(order.price);
+        if (order.getTriggerAbove()) return markPrice >= uint256(order.price);
+        else return markPrice <= uint256(order.price);
     }
 
     function setPrice(Props memory order, uint256 _p) internal pure {
-        require(_p < 2 ** 128);
-        order.price = uint128(_p);
+        order.price = _p.toUint128();
     }
-
-    //========================================
-    //        extra0
-    //========================================
 
     function setFromOrder(Props memory order, uint64 orderID) internal pure {
         order.extra0 = uint128(orderID);
@@ -77,21 +73,15 @@ library Order {
     }
 
     function setStoploss(Props memory order, uint256 stoploss) internal pure {
-        require(stoploss < 2 ** 128);
-        order.extra0 = uint128(stoploss);
+        order.extra0 = stoploss.toUint128();
     }
 
     function getStoploss(Props memory order) internal pure returns (uint256) {
         return uint256(order.extra0);
     }
 
-    //========================================
-    //        extra1
-    //========================================
-
     function setTakeprofit(Props memory order, uint256 tp) internal pure {
-        require(tp < 2 ** 128);
-        order.extra1 = uint128(tp);
+        order.extra1 = tp.toUint128();
     }
 
     function getTakeprofit(Props memory order) internal pure returns (uint256) {

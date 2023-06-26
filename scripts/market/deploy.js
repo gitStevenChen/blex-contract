@@ -138,27 +138,27 @@ async function createMarket(name, contracts, configs, writeJson) {
 
 	const createInputs = {
 		_name: name,
-		_marketAddress: market.address, // Enter market address here
+		_marketAddress: market.address,
 		addrs: [
-			positionBook.address,				// 0
-			orderBookLongContracts.orderBook.address, 	// 1
-			orderBookShortContracts.orderBook.address,	// 2
-			marketValid.address,			// 3
-			contracts.oracle,			// 4
-			contracts.positionSubMgr,		// 5
-			contracts.positionAddMgr,		// 6
-			contracts.indexToken,			// 7
-			contracts.feeRouter,			// 8
-			contracts.marketRouter,			// 9
-			contracts.vaultRouter,			// 10
-			contracts.collateralToken,		// 11
-			contracts.globalValid,			// 12
-			contracts.orderMgr			// 13
-		], // Enter array of addresses here
-		_openStoreLong: orderBookLongContracts.orderStoreOpen.address, 	   // Enter open store long address here
-		_closeStoreLong: orderBookLongContracts.orderStoreClose.address,   // Enter close store long address here
-		_openStoreShort: orderBookShortContracts.orderStoreOpen.address,   // Enter open store short address here
-		_closeStoreShort: orderBookShortContracts.orderStoreClose.address, // Enter close store short address here
+			positionBook.address,
+			orderBookLongContracts.orderBook.address,
+			orderBookShortContracts.orderBook.address,
+			marketValid.address,
+			contracts.oracle,
+			contracts.positionSubMgr,
+			contracts.positionAddMgr,
+			contracts.indexToken,
+			contracts.feeRouter,
+			contracts.marketRouter,
+			contracts.vaultRouter,
+			contracts.collateralToken,
+			contracts.globalValid,
+			contracts.orderMgr
+		],
+		_openStoreLong: orderBookLongContracts.orderStoreOpen.address,
+		_closeStoreLong: orderBookLongContracts.orderStoreClose.address,
+		_openStoreShort: orderBookShortContracts.orderStoreOpen.address,
+		_closeStoreShort: orderBookShortContracts.orderStoreClose.address,
 		_minSlippage: configs.minSlippage,
 		_maxSlippage: configs.maxSlippage,
 		_minLeverage: configs.minLeverage,

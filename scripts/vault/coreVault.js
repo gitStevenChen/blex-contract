@@ -1,29 +1,34 @@
 const {
-  deployOrConnect,
-  readDeployedContract,
+  getContractAt,
+  readUpgradableDeployedContract,
   handleTx,
   writeContractAddresses,
+  deployUpgradeable
 } = require("../utils/helpers");
 
-async function deployCoreVault(asset, name, symbol, writeJson) {
-  const vault = await deployOrConnect("CoreVault", [asset, name, symbol]);
+async function deployCoreVault(writeJson = true) {
 
+  const { implementation, proxy } = await deployUpgradeable("CoreVault", "CoreVault")
   const result = {
-    CoreVault: vault.address,
+    CoreVault: proxy.address,
+    ["CoreVaultImpl"]: implementation.address,
   };
   if (writeJson) writeContractAddresses(result);
 
-  return vault;
+  return getContractAt("CoreVault", proxy.address)
 }
 
 async function readCoreVaultContract() {
-  const vault = await readDeployedContract("CoreVault");
+  const vault = await readUpgradableDeployedContract("CoreVault");
   return vault;
 }
 
-async function initialize(vaultRouterAddr) {
-  const vault = await readCoreVaultContract();
-  await handleTx(vault.initialize(vaultRouterAddr), "coreVault.initialize");
+async function initCoreVault({ coreVault, asset, name, symbol, vaultRouterAddr, feeRouterAddr }) {
+  if (null == coreVault) coreVault = await readCoreVaultContract();
+  await handleTx(
+    coreVault.initialize(asset, name, symbol, vaultRouterAddr, feeRouterAddr),
+    "coreVault.initialize"
+  );
 }
 
 async function setVaultRouter(vaultRouterAddr) {
@@ -87,7 +92,7 @@ async function getLPFee(isBuy) {
 module.exports = {
   deployCoreVault,
   readCoreVaultContract,
-  initialize,
+  initCoreVault,
   setVaultRouter,
   setLpFee,
   setCooldownDuration,
