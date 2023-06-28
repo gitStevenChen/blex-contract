@@ -48,9 +48,10 @@ contract PositionStore is Ac {
 
     function setPositionBook(address pb) external onlyAdmin {
         require(pb != address(0), "invalid address");
-
         address _old = positionBook;
+        _revokeRole(ROLE_CONTROLLER, _old);
         positionBook = pb;
+        _grantRole(ROLE_CONTROLLER, pb);
         emit UpdatePositionBook(_old, pb);
     }
 

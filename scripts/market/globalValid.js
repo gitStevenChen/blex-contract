@@ -1,4 +1,5 @@
 const {
+	deployContract,
 	deployOrConnect,
 	readDeployedContract,
 	handleTx,
@@ -6,7 +7,7 @@ const {
 } = require("../utils/helpers");
 
 async function deployGlobalValid(writeJson) {
-	const globalValid = await deployOrConnect("GlobalValid", []);
+	const globalValid = await deployContract("GlobalValid", []);
 
 	const result = {
 		GlobalValid: globalValid.address

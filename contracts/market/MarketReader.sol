@@ -37,7 +37,7 @@ contract MarketReader is Ac, IMarketReader {
     function initialize(
         address _marketRouter,
         address _vaultRouter
-    ) external onlyOwner initializeLock {
+    ) external onlyOwner initializer {
         require(_marketRouter != address(0));
         require(_vaultRouter != address(0));
         marketRouter = IMarketRouter(_marketRouter);

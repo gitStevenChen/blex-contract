@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
-
 import {MarketConfigStruct} from "./MarketConfigStruct.sol";
 import {IFeeRouter} from "../fee/interfaces/IFeeRouter.sol";
 import {IVaultRouter} from "../vault/interfaces/IVaultRouter.sol";
@@ -8,7 +7,7 @@ import {IOrderBook} from "../order/interface/IOrderBook.sol";
 import {IFeeRouter} from "../fee/interfaces/IFeeRouter.sol";
 import {IPositionBook} from "../position/interfaces/IPositionBook.sol";
 import {Order} from "../order/OrderStruct.sol";
-import {MarketPositionCallBackIntl, MarketOrderCallBackIntl} from "./interfaces/IMarketCallBackIntl.sol";
+import {MarketPositionCallBackIntl, MarketOrderCallBackIntl, MarketCallBackIntl} from "./interfaces/IMarketCallBackIntl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../utils/TransferHelper.sol";
 import "./MarketDataTypes.sol";
@@ -75,9 +74,12 @@ library MarketLib {
     ) internal {
         uint256 balanceBefore = IERC20(erc20Token).balanceOf(market);
         for (uint256 i = 0; i < plugins.length; i++) {
-            MarketPositionCallBackIntl(plugins[i]).updatePositionCallback(
-                _item
-            );
+            if (MarketCallBackIntl(plugins[i]).getHooksCalls().updatePosition) {
+                try
+                    MarketPositionCallBackIntl(plugins[i])
+                        .updatePositionCallback(_item)
+                {} catch {}
+            }
         }
         uint256 balanceAfter = IERC20(erc20Token).balanceOf(market);
         require(balanceAfter == balanceBefore, "ERC20 token balance changed");
@@ -92,7 +94,13 @@ library MarketLib {
     ) internal {
         uint256 balanceBefore = IERC20(collateralToken).balanceOf(market);
         for (uint256 i = 0; i < plugins.length; i++) {
-            MarketOrderCallBackIntl(plugins[i]).updateOrderCallback(_item);
+            if (MarketCallBackIntl(plugins[i]).getHooksCalls().updateOrder) {
+                try
+                    MarketOrderCallBackIntl(plugins[i]).updateOrderCallback(
+                        _item
+                    )
+                {} catch {}
+            }
         }
         uint256 balanceAfter = IERC20(collateralToken).balanceOf(market);
         require(balanceAfter == balanceBefore, "ERC20 token balance changed");
@@ -107,7 +115,11 @@ library MarketLib {
     ) internal {
         uint256 balanceBefore = IERC20(erc20Token).balanceOf(market);
         for (uint256 i = 0; i < plugins.length; i++) {
-            MarketOrderCallBackIntl(plugins[i]).deleteOrderCallback(e);
+            if (MarketCallBackIntl(plugins[i]).getHooksCalls().deleteOrder) {
+                try
+                    MarketOrderCallBackIntl(plugins[i]).deleteOrderCallback(e)
+                {} catch {}
+            }
         }
         uint256 balanceAfter = IERC20(erc20Token).balanceOf(market);
         require(balanceAfter == balanceBefore, "ERC20 token balance changed");

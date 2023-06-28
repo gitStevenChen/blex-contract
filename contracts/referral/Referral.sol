@@ -3,19 +3,21 @@ pragma solidity ^0.8.17;
 
 import "./interfaces/IReferral.sol";
 import "./../ac/Ac.sol";
+import "../fee/interfaces/IFeeRouter.sol";
+import {MarketPositionCallBackIntl, MarketCallBackIntl} from "../market/interfaces/IMarketCallBackIntl.sol";
 
-contract Referral is IReferral, Ac {
+contract Referral is IReferral, Ac, MarketPositionCallBackIntl {
     struct Tier {
-        uint256 totalRebate; // e.g. 2400 for 24%
-        uint256 discountShare; // 5000 for 50%/50%, 7000 for 30% rebates/70% discount
+        uint256 totalRebate;
+        uint256 discountShare;
     }
 
     uint256 public constant BASIS_POINTS = 10000;
-    // TODO: specifiy this
+
     bytes32 public constant DEFAULT_CODE = bytes32("dei");
 
-    mapping(address => uint256) public referrerDiscountShares; // to  default value in tier
-    mapping(address => uint256) public referrerTiers; // link between user <> tier
+    mapping(address => uint256) public referrerDiscountShares;
+    mapping(address => uint256) public referrerTiers;
     mapping(uint256 => Tier) public tiers;
 
     mapping(bytes32 => address) public codeOwners;
@@ -110,14 +112,20 @@ contract Referral is IReferral, Ac {
         emit RegisterCode(msg.sender, _code);
     }
 
+    modifier onlyCodeOwner(bytes32 _code) {
+        address account = codeOwners[_code];
+        require(msg.sender == account, "Referral: forbidden");
+        _;
+    }
+
     /**This function is designed to change the owner address of a specific code.
      * Only the original owner of the code has the authority to change the owner
      * address of the code. */
-    function setCodeOwner(bytes32 _code, address _newAccount) external {
+    function setCodeOwner(
+        bytes32 _code,
+        address _newAccount
+    ) external onlyCodeOwner(_code) {
         require(_code != bytes32(0), "Referral: invalid _code");
-
-        address account = codeOwners[_code];
-        require(msg.sender == account, "Referral: forbidden");
 
         codeOwners[_code] = _newAccount;
         emit SetCodeOwner(msg.sender, _newAccount, _code);
@@ -162,53 +170,51 @@ contract Referral is IReferral, Ac {
         return owners;
     }
 
-    function emitDecreasePositionReferral(
-        address _account,
-        bytes32 _referralCode,
-        uint256 _sizeDelta,
-        uint256 _marginFeeBasisPoints
-    ) external onlyController {
+    function updatePositionCallback(
+        MarketPositionCallBackIntl.UpdatePositionEvent memory _event
+    ) external override onlyController {
         (bytes32 referralCode, address referrer) = getTraderReferralInfo(
-            _account
+            _event.inputs._account
         );
-
         if (referralCode == bytes32(0)) {
-            require(codeOwners[_referralCode] != address(0), "invalid code");
-            _setTraderReferralCode(_account, _referralCode);
-            referralCode = _referralCode;
+            referrer = codeOwners[_event.inputs._refCode];
+            require(referrer != address(0), "invalid code");
+            _setTraderReferralCode(
+                _event.inputs._account,
+                _event.inputs._refCode
+            );
+            referralCode = _event.inputs._refCode;
         }
 
-        emit DecreasePositionReferral(
-            _account,
-            _sizeDelta,
-            _marginFeeBasisPoints,
-            referralCode,
-            referrer
-        );
+        if (_event.inputs.isOpen)
+            emit IncreasePositionReferral(
+                _event.inputs._account,
+                _event.inputs._sizeDelta,
+                uint256(_event.fees[uint8(IFeeRouter.FeeType.OpenFee)]),
+                referralCode,
+                referrer
+            );
+        else
+            emit DecreasePositionReferral(
+                _event.inputs._account,
+                _event.inputs._sizeDelta,
+                uint256(_event.fees[uint8(IFeeRouter.FeeType.CloseFee)]),
+                referralCode,
+                referrer
+            );
     }
 
-    function emitIncreasePositionReferral(
-        address _account,
-        bytes32 _referralCode,
-        uint256 _sizeDelta,
-        uint256 _marginFeeBasisPoints
-    ) external onlyController {
-        (bytes32 referralCode, address referrer) = getTraderReferralInfo(
-            _account
-        );
-
-        if (referralCode == bytes32(0)) {
-            require(codeOwners[_referralCode] != address(0), "invalid code");
-            _setTraderReferralCode(_account, _referralCode);
-            referralCode = _referralCode;
-        }
-
-        emit IncreasePositionReferral(
-            _account,
-            _sizeDelta,
-            _marginFeeBasisPoints,
-            referralCode,
-            referrer
-        );
+    function getHooksCalls()
+        external
+        pure
+        override
+        returns (MarketCallBackIntl.Calls memory)
+    {
+        return
+            MarketCallBackIntl.Calls({
+                updatePosition: true,
+                updateOrder: false,
+                deleteOrder: false
+            });
     }
 }

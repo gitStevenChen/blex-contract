@@ -23,7 +23,7 @@ contract MarketStorage is IMarketStorage {
     function orderStore(
         bool isLong,
         bool isOpen
-    ) internal view returns (IOrderStore) {
+    ) public view returns (IOrderStore) {
         return orderStores[isLong][isOpen];
     }
 

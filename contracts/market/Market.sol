@@ -120,7 +120,7 @@ contract Market is MarketStorage, ReentrancyGuard, Ac {
     function initialize(
         address[] memory addrs,
         string memory _name
-    ) external initializeLock {
+    ) external initializer {
         name = _name;
 
         positionBook = IPositionBook(addrs[0]);
@@ -151,6 +151,19 @@ contract Market is MarketStorage, ReentrancyGuard, Ac {
 
     function addPlugin(address _addr) external onlyAdmin {
         plugins.push(_addr);
+    }
+
+    function removePlugin(address _addr) external onlyAdmin {
+        for (uint i = 0; i < plugins.length; i++) {
+            if (plugins[i] == _addr) {
+                // Replace the element to remove with the last element
+                plugins[i] = plugins[plugins.length - 1];
+                // Remove the last element
+                plugins.pop();
+                // Exit the loop
+                break;
+            }
+        }
     }
 
     function setOrderBooks(

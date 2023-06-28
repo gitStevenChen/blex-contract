@@ -14,6 +14,7 @@ contract FundFee is Ownable, Ac {
     uint256 public constant DEFAILT_RATE_DIVISOR = 100;
 
     uint256 public minRateLimit = 2083;
+    uint256 public minorityFRate = 0;
 
     // market's funding rate update interval
     mapping(address => uint256) public fundingIntervals;
@@ -27,6 +28,7 @@ contract FundFee is Ownable, Ac {
 
     event UpdateMinRateLimit(uint256 indexed oldLimit, uint256 newLimit);
     event UpdateFundInterval(address indexed market, uint256 interval);
+    event UpdateMinorityFRate(uint256 oldFRate, uint256 newFRate);
     event AddSkipTime(uint256 indexed startTime, uint256 indexed endTime);
 
     constructor(address vault) Ac(msg.sender) {
@@ -43,6 +45,13 @@ contract FundFee is Ownable, Ac {
         minRateLimit = limit;
 
         emit UpdateMinRateLimit(_oldLimit, limit);
+    }
+
+    function setMinorityFRate(uint256 rate) external onlyAdmin {
+        uint256 _old = minorityFRate;
+        minorityFRate = rate;
+
+        emit UpdateMinorityFRate(_old, rate);
     }
 
     function setFundingInterval(
@@ -190,9 +199,9 @@ contract FundFee is Ownable, Ac {
             return (_sRate, _sRate);
         }
         if (longSize >= shortSize) {
-            return (_sRate, 0);
+            return (_sRate, int256(minorityFRate));
         }
-        return (0, _sRate);
+        return (int256(minorityFRate), _sRate);
     }
 
     function _calFeeRate(

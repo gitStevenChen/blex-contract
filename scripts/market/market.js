@@ -4,6 +4,7 @@ const {
 	readDeployedContract,
 	handleTx,
 	writeContractAddresses,
+	readDeployedContract2
 } = require("../utils/helpers");
 
 async function deployMarket(factoryAddr, writeJson) {
@@ -18,8 +19,12 @@ async function deployMarket(factoryAddr, writeJson) {
 	return market;
 }
 
-async function readMarketContract() {
-	const market = await readDeployedContract("Market");
+/**
+ * @param {ETH or BTC} symbol 
+ * @returns market contract
+ */
+async function readMarketContract(symbol) {
+	const market = await readDeployedContract2({ name: "Market", symbol: symbol });
 	return market;
 }
 
@@ -31,16 +36,15 @@ async function initialize(name, initAddrs) {
 	);
 }
 
-async function addPlugin(pluginAddr) {
-	const market = await readMarketContract();
+async function addPlugin(market, pluginAddr) {
+
 	await handleTx(
 		market.addPlugin(pluginAddr),
 		"market.addPlugin"
 	);
 }
 
-async function setOrderBooks(orderBookLongAddr, orderBookShortAddr) {
-	const market = await readMarketContract();
+async function setOrderBooks(market, orderBookLongAddr, orderBookShortAddr) {
 	await handleTx(
 		market.setOrderBooks(orderBookLongAddr, orderBookShortAddr),
 		"market.setOrderBooks"
@@ -79,6 +83,22 @@ async function setOrderMgr(mgrAddr) {
 	);
 }
 
+async function setContracts(contracts, symbol) {
+	const market = await readMarketContract(symbol)
+	const contractFactory = await ethers.getContractFactory("OrderMgr")
+	const mgr = await contractFactory.attach(market.address)
+
+	const newAddresses = []
+	for (let index = 0; index < contracts.length; index++) {
+		const element = contracts[index];
+		newAddresses.push(element.address)
+	}
+	await handleTx(
+		mgr.setContracts(newAddresses),
+		"mgr.setContracts"
+	);
+}
+
 module.exports = {
 	deployMarket,
 	readMarketContract,
@@ -89,4 +109,5 @@ module.exports = {
 	setMarketValid,
 	setPositionMgr,
 	setOrderMgr,
+	setContracts
 };

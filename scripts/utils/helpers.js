@@ -8,6 +8,7 @@ const isLocalFlow = network == "local-dev" ? true : false
 
 let contract_deploy_wait_list = []
 let totalGasUsed = 0
+const util = require('util');
 
 function deleteAddressJson() {
   try {
@@ -41,20 +42,55 @@ async function deployContract(name, args = [], label, options) {
   console.info(`Deploying ${info} ${contract.address} ${argStr}`)
   await contract.deployTransaction.wait()
   console.info("... Completed!")
+
+  let uploadToTenderfly = false
+  try { uploadToTenderfly = process.env.UseTenderly == "True" } catch (error) { }
+
+  if (!isLocalHost() && uploadToTenderfly) {
+
+    await hre.tenderly.persistArtifacts({
+      name: name,
+      address: contract.address,
+    })
+
+    await hre.tenderly.verify({
+      name: name,
+      address: contract.address,
+    })
+  }
+
   return contract
 }
 
-async function readDeployedContract(name, args = [], label) {
+async function readDeployedContract(name, args = [], label, symbol = null) {
   let info = name
-
-  let existingObj = readContractAddresses()
-  if (label) {
-    contractAddress = existingObj[label]
-  } else {
-    contractAddress = existingObj[info]
-  }
+  let existingObj
+  if (symbol == null) existingObj = readContractAddresses()
+  else existingObj = readContractAddresses2(symbol)
+  if (label) contractAddress = existingObj[label]
+  else contractAddress = existingObj[info]
   const contractFactory = await ethers.getContractFactory(name)
   return await contractFactory.attach(contractAddress)
+}
+
+async function readUpgradableDeployedContract(name, args = [], label, symbol = null) {
+  let info = name
+  let existingObj
+  if (symbol == null) existingObj = readContractAddresses()
+  else existingObj = readContractAddresses2(symbol)
+  if (label) contractAddress = existingObj[label]
+  else contractAddress = existingObj[info]
+  const contractFactory = await ethers.getContractFactory(name)
+  return await contractFactory.attach(contractAddress)
+}
+
+async function readDeployedContract2({
+  name,
+  args = [],
+  label = null,
+  symbol = null
+} = {}) {
+  return await readDeployedContract(name, args, label, symbol)
 }
 
 async function deployWithAddressStorage(name, args = [], label, options) {
@@ -101,7 +137,7 @@ async function deployWithAddressStorage(name, args = [], label, options) {
   }
   const argStr = args.map((i) => `"${i}"`).join(" ")
   console.info(`Deploying ${info} ${contract.address} ${argStr}`)
-  // console.info(`Deploying ${info}: ${contract.address} `);
+
   const receipt = await contract.deployTransaction.wait()
   if (receipt.status === 1) {
     console.log(
@@ -137,7 +173,7 @@ async function uploadToTenderfly(name, contract) {
     name: name,
     address: contract.address,
   })
-  // Verify contract on Tenderly
+
   await hre.tenderly.verify({
     name: name,
     address: contract.address,
@@ -175,15 +211,6 @@ async function deployOrConnect(
   const contractFactory = await ethers.getContractFactory(name)
 
   if (!isLocalFlow && deployed) {
-    // await hre.tenderly.persistArtifacts({
-    //   name: name,
-    //   address: contractAddress
-    // });
-    // // Verify contract on Tenderly
-    // await hre.tenderly.verify({
-    //   name: name,
-    //   address: contractAddress,
-    // })
     if (shouldLog)
       console.log("%s already exists, address: %s", keyInfo, contractAddress)
     return await contractFactory.attach(contractAddress)
@@ -212,42 +239,42 @@ async function deployOrConnect(
     }
   }
 
-  // const argStr = args.map((i) => `"${i}"`).join(" ")
-  // console.info(`Deploying ${info} ${contract.address} ${argStr}`);
+
+
   const receipt = await contract.deployTransaction.wait()
   if (receipt.status === 1) {
-    // deploy success
-    // ==============================================
-    // ADD TO TENDERLY FOR VERIFICATION AND PERSISTENCE
-    // ==============================================
+
+
+
+
     let uploadToTenderfly = false
     try {
       uploadToTenderfly = process.env.UseTenderly == "True"
     } catch (error) { }
-    // Check if the deployment is not local and not skipped, and if the UseTenderly environment variable is set to "True"
+
     if (!isLocalHost() && uploadToTenderfly) {
-      // Persist contract artifacts on Tenderly
+
       await hre.tenderly.persistArtifacts({
         name: name,
         address: contract.address,
       })
-      // Verify contract on Tenderly
+
       await hre.tenderly.verify({
         name: name,
         address: contract.address,
       })
     }
-    // ==============================================
+
     if (shouldLog) {
       console.log(
-        // `${keyInfo} deploy success, txHash: %s, gasUsed: %s, total gasUsed: %s`,
+
         receipt.transactionHash,
         receipt.gasUsed,
         (totalGasUsed += Number(receipt.gasUsed))
       )
     }
   } else {
-    // deploy fail
+
     if (shouldLog)
       console.error(`${keyInfo} deploy failed, receipt: %s`, receipt)
   }
@@ -297,15 +324,15 @@ async function deployOrConnect2(
   const contractFactory = await ethers.getContractFactory(name)
 
   if (!isLocalFlow && deployed) {
-    // await hre.tenderly.persistArtifacts({
-    //   name: name,
-    //   address: contractAddress
-    // });
-    // // Verify contract on Tenderly
-    // await hre.tenderly.verify({
-    //   name: name,
-    //   address: contractAddress,
-    // })
+
+
+
+
+
+
+
+
+
     if (shouldLog)
       console.log("%s already exists, address: %s", keyInfo, contractAddress)
     return await contractFactory.attach(contractAddress)
@@ -334,42 +361,42 @@ async function deployOrConnect2(
     }
   }
 
-  // const argStr = args.map((i) => `"${i}"`).join(" ")
-  // console.info(`Deploying ${info} ${contract.address} ${argStr}`);
+
+
   const receipt = await contract.deployTransaction.wait()
   if (receipt.status === 1) {
-    // deploy success
-    // ==============================================
-    // ADD TO TENDERLY FOR VERIFICATION AND PERSISTENCE
-    // ==============================================
+
+
+
+
     let uploadToTenderfly = false
     try {
       uploadToTenderfly = process.env.UseTenderly == "True"
     } catch (error) { }
-    // Check if the deployment is not local and not skipped, and if the UseTenderly environment variable is set to "True"
+
     if (!isLocalHost() && uploadToTenderfly) {
-      // Persist contract artifacts on Tenderly
+
       await hre.tenderly.persistArtifacts({
         name: name,
         address: contract.address,
       })
-      // Verify contract on Tenderly
+
       await hre.tenderly.verify({
         name: name,
         address: contract.address,
       })
     }
-    // ==============================================
+
     if (shouldLog) {
       console.log(
-        // `${keyInfo} deploy success, txHash: %s, gasUsed: %s, total gasUsed: %s`,
+
         receipt.transactionHash,
         receipt.gasUsed,
         (totalGasUsed += Number(receipt.gasUsed))
       )
     }
   } else {
-    // deploy fail
+
     if (shouldLog)
       console.error(`${keyInfo} deploy failed, receipt: %s`, receipt)
   }
@@ -452,7 +479,7 @@ async function contractAt(name, address, provider) {
   return await contractFactory.attach(address)
 }
 
-// 针对的是这个函数的文件目录？
+
 const contractAddressesFilepath = path.join(
   __dirname,
   "../..",
@@ -511,7 +538,7 @@ async function callWithRetries(func, args, retriesCount = 3) {
   }
 }
 
-// batchLists is an array of lists
+
 async function processBatch(batchLists, batchSize, handler) {
   let currentBatch = []
   const referenceList = batchLists[0]
@@ -549,20 +576,20 @@ async function processBatch(batchLists, batchSize, handler) {
 }
 
 function copyJsonFiles(sourceFolder, destFolder) {
-  // Get a list of files in the source folder
+
   const files = fs.readdirSync(sourceFolder)
-  // Loop through each file
+
   files.forEach((file) => {
     const filePath = path.join(sourceFolder, file)
     const stats = fs.statSync(filePath)
 
-    // If the file is a directory, recursively call the function
+
     if (stats.isDirectory()) {
-      // console.log(filePath);
-      // console.log(path.join(destFolder, file));
+
+
       copyJsonFiles(filePath, destFolder)
     } else {
-      // If the file is a JSON file, copy it to the destination folder
+
       if (path.extname(filePath) === ".json" && file.indexOf(".dbg.") == -1) {
         const fileContents = fs.readFileSync(filePath)
         const destPath = path.join(destFolder, file)
@@ -628,15 +655,22 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-async function grantRoleIfNotGranted(granter, role, grantee, label) {
+async function grantRoleIfNotGranted(granter, role, grantee, label, private_key = null) {
   const roleHash = utils.keccak256(utils.toUtf8Bytes(role))
 
   if (await granter.hasRole(roleHash, grantee)) {
     console.log("granted", label)
     return
   }
-
-  await handleTx(granter.grantRole(roleHash, grantee), label)
+  if (null == private_key)
+    await handleTx(granter.grantRole(roleHash, grantee), label)
+  else {
+    const new_wallet = new ethers.Wallet(private_key, ethers.provider);
+    await handleTx(
+      granter.connect(new_wallet).grantRole(roleHash, grantee),
+      label
+    )
+  }
 }
 
 async function revokeRoleIfGranted(granter, role, grantee, label) {
@@ -653,7 +687,81 @@ async function revokeRoleIfGranted(granter, role, grantee, label) {
   }
 }
 
+async function _deploy(contractName, ...args) {
+  return _deployWithSigner(null, contractName, ...args)
+}
+
+async function _deployWithSigner(signer, contractName, ...args) {
+  const factory = await _getFactory(contractName)
+  let deployed
+  if (signer == null) {
+    deployed = await factory.deploy(...args)
+  } else {
+    deployed = await factory.connect(signer).deploy(...args)
+  }
+  const receipt = await deployed.deployTransaction.wait()
+  return { deployed, receipt }
+}
+
+async function _getFactory(name) {
+  const contractFactory = await ethers.getContractFactory(name)
+  return contractFactory
+}
+
+async function getContractAt(contractName, address) {
+  const factory = await _getFactory(contractName)
+  return await factory.attach(address)
+}
+
+async function deployUpgradeable(contractName, aliasName, admin = "0x7a3FFfef35753943B0f3DD77174570cBe616aA2e") {
+  const [wallet] = await ethers.getSigners()
+  if (null == admin) admin = wallet.address
+  let implementation = await deployContract(
+    contractName,
+    [],
+    contractName + "__implementation"
+  )
+  const { deployed, receipt } = await _deploy(
+    "TransparentUpgradeableProxy",
+    implementation.address, admin, "0x"
+  )
+  const deployedContracts = {}
+  deployedContracts[aliasName] = {
+    type: "upgradeable",
+    name: aliasName,
+    address: deployed.address,
+    dependencies: { admin, implementation: implementation.address },
+    deployedAt: receipt.blockNumber,
+  }
+  console.log(deployedContracts[aliasName]);
+
+  return {
+    implementation,
+    proxy: deployed
+  }
+}
+
+
+async function upgradeContract(contractName) {
+  let implementation = await deployContract(
+    contractName,
+    [],
+    contractName + "__implementation"
+  )
+  let existingObj = readContractAddresses()
+  contractAddress = existingObj[contractName + "Impl"]
+  const proxyContract = await getContractAt("TransparentUpgradeableProxy", contractAddress)
+  const upgradeWallet = new ethers.Wallet(process.env.TestnetUpgradePrivateKey);
+  await handleTx(proxyContract.connect(upgradeWallet).upgradeTo(implementation.address))
+  writeContractAddresses({ [contractName + "Impl"]: implementation.address })
+  return {
+    implementation,
+    proxy: proxyContract
+  }
+}
+
 module.exports = {
+  upgradeContract,
   deployContract,
   deployOrConnect,
   contractAt,
@@ -676,5 +784,9 @@ module.exports = {
   uploadToTenderfly,
   waitTx,
   isLocalHost,
-  deployOrConnect2
+  deployOrConnect2,
+  readDeployedContract2,
+  deployUpgradeable,
+  readUpgradableDeployedContract,
+  getContractAt
 }

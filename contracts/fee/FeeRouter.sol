@@ -35,6 +35,7 @@ contract FeeRouter is Ac, IFeeRouter {
     event UpdateFeeAndRates(
         address indexed market,
         uint8 kind,
+        uint256 oldFeeOrRate,
         uint256 feeOrRate
     );
 
@@ -45,11 +46,21 @@ contract FeeRouter is Ac, IFeeRouter {
     function initialize(
         address vault,
         address fundingFee
-    ) external initializeLock {
+    ) external initializer {
         require(vault != address(0), "invalid fee vault");
         require(fundingFee != address(0), "invalid fundFee");
 
         feeVault = vault;
+        fundFee = fundingFee;
+    }
+
+    function setFeeVault(address vault) external onlyAdmin {
+        require(vault != address(0), "invalid fee vault");
+        feeVault = vault;
+    }
+
+    function setFundFee(address fundingFee) external onlyAdmin {
+        require(fundFee != address(0), "invalid fundFee");
         fundFee = fundingFee;
     }
 
@@ -60,12 +71,9 @@ contract FeeRouter is Ac, IFeeRouter {
         require(rates.length > 0, "invalid params");
 
         for (uint8 i = 0; i < rates.length; i++) {
-            if (rates[i] == 0) {
-                continue;
-            }
-
+            uint256 _old = rates[i];
             feeAndRates[market][i] = rates[i];
-            emit UpdateFeeAndRates(market, i, rates[i]);
+            emit UpdateFeeAndRates(market, i, _old, rates[i]);
         }
     }
 

@@ -15,13 +15,21 @@ async function readTokenContract() {
 }
 
 async function mint(toAddr, amount) {
-  const token = await deployContract("ERC20Mocker", []);
+  const token = await readTokenContract();
   await handleTx(token.mint(toAddr, amount), "token.mint");
 }
 
 async function burn(toAddr, amount) {
-  const token = await deployContract("ERC20Mocker", []);
+  const token = await readDeployedContract();
   await handleTx(token.burn(toAddr, amount), "token.burn");
+}
+
+async function approve(spender, amount) {
+  const token = await readTokenContract();
+  await handleTx(
+    token.approve(spender, amount),
+    "token.approve"
+  );
 }
 
 module.exports = {
@@ -29,4 +37,5 @@ module.exports = {
   readTokenContract,
   mint,
   burn,
+  approve,
 };

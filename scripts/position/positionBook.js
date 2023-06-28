@@ -1,6 +1,6 @@
 const {
   deployOrConnect,
-  readDeployedContract,
+  readDeployedContract2,
   handleTx,
   grantRoleIfNotGranted,
   writeContractAddresses,
@@ -18,8 +18,8 @@ async function deployPositionBook(factotyAddr, writeJson) {
   return pb;
 }
 
-async function readPositionBookContract() {
-  const pb = await readDeployedContract("PositionBook");
+async function readPositionBookContract(symbol) {
+  const pb = await readDeployedContract2({ name: "PositionBook", symbol: symbol });
   return pb
 }
 

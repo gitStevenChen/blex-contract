@@ -2,15 +2,13 @@
 
 pragma solidity ^0.8.17;
 
-import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IVaultReward} from "./interfaces/IVaultReward.sol";
 import "../ac/Ac.sol";
 
-contract RewardDistributor is ReentrancyGuard, Ac {
-    using SafeMath for uint256;
+contract RewardDistributor is Ac {
     using SafeERC20 for IERC20;
 
     address public rewardToken;
@@ -26,12 +24,11 @@ contract RewardDistributor is ReentrancyGuard, Ac {
     function initialize(
         address _rewardToken,
         address _rewardTracker
-    ) external initializeLock {
+    ) external initializer {
         rewardToken = _rewardToken;
         rewardTracker = _rewardTracker;
     }
 
-    // to help users who accidentally send their tokens to this contract
     function withdrawToken(
         address _token,
         address _account,
@@ -59,15 +56,19 @@ contract RewardDistributor is ReentrancyGuard, Ac {
             return 0;
         }
 
-        uint256 timeDiff = block.timestamp.sub(lastDistributionTime);
-        return tokensPerInterval.mul(timeDiff);
+        uint256 timeDiff = block.timestamp - lastDistributionTime;
+        return tokensPerInterval * timeDiff;
     }
 
-    function distribute() external returns (uint256) {
+    modifier onlyRewardTracker() {
         require(
             msg.sender == rewardTracker,
             "RewardDistributor: invalid msg.sender"
         );
+        _;
+    }
+
+    function distribute() external onlyRewardTracker returns (uint256) {
         uint256 amount = pendingRewards();
         if (amount == 0) {
             return 0;

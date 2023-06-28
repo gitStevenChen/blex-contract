@@ -1,31 +1,37 @@
 const {
-	deployOrConnect,
-	readDeployedContract,
+	deployContract,
+	readDeployedContract2,
 	handleTx,
-	writeContractAddresses,
+	writeContractAddresses2,
 } = require("../utils/helpers");
 
-async function deployOrderBook(factoryAddr, writeJson, label) {
-	const key = "OrderBook"+(label); 
-	const orderBook = await deployOrConnect("OrderBook", [factoryAddr], key);
+async function deployOrderBook(factoryAddr, writeJson, isLong, symbol) {
+	const key = "orderBook" + isLong ? "Long" : "Short";
+	const orderBook = await deployContract("OrderBook", [factoryAddr], key);
 
 	const result = {
 		[key]: orderBook.address,
 	};
-	if (writeJson)
-		writeContractAddresses(result)
+	if (writeJson) writeContractAddresses2(result, symbol)
 
 	return orderBook;
 }
 
-async function readOrderBookContract(label) {
-	const key = "OrderBook"+(label); 
-	const orderBook = await readDeployedContract(key);
+async function readOrderBookContract({ isLong, symbol } = {}) {
+	const key = "orderBook" + (isLong ? "Long" : "Short");
+	const orderBook = await readDeployedContract2({
+		name: "OrderBook",
+		label: key,
+		symbol: symbol
+	});
 	return orderBook;
 }
 
-async function initialize(openStoreAddr, closeStoreAddr, isLong, label) {
-	const orderBook  = await readOrderBookContract(label);
+async function initializeOrderBook({ openStoreAddr, closeStoreAddr, isLong, symbol } = {}) {
+	const orderBook = await readOrderBookContract({
+		isLong: isLong,
+		symbol: symbol
+	});
 	await handleTx(
 		orderBook.initialize(isLong, openStoreAddr, closeStoreAddr),
 		"orderBook.initialize"
@@ -35,5 +41,5 @@ async function initialize(openStoreAddr, closeStoreAddr, isLong, label) {
 module.exports = {
 	deployOrderBook,
 	readOrderBookContract,
-	initialize,
+	initializeOrderBook,
 };

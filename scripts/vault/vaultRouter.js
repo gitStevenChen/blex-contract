@@ -4,17 +4,19 @@ const {
   handleTx,
   grantRoleIfNotGranted,
   writeContractAddresses,
+  deployUpgradeable,
+  getContractAt
 } = require("../utils/helpers");
 
-async function deployVaultRouter(writeJson) {
-  const vaultRouter = await deployOrConnect("VaultRouter", []);
-
+async function deployVaultRouter(writeJson = true) {
+  const { implementation, proxy } = await deployUpgradeable("VaultRouter", "VaultRouter")
   const result = {
-    VaultRouter: vaultRouter.address,
+    VaultRouter: proxy.address,
+    ["VaultRouterImpl"]: implementation.address,
   };
   if (writeJson) writeContractAddresses(result);
 
-  return vaultRouter;
+  return getContractAt("VaultRouter", proxy.address)
 }
 
 async function readVaultRouterContract() {
@@ -24,6 +26,14 @@ async function readVaultRouterContract() {
 
 async function initialize(coreVaultAddr, feeRouterAddr) {
   const vaultRouter = await readVaultRouterContract();
+  await handleTx(
+    vaultRouter.initialize(coreVaultAddr, feeRouterAddr),
+    "vaultRouter.initialize"
+  );
+}
+
+async function initializeVaultRouter(coreVaultAddr, feeRouterAddr, vaultRouter = null) {
+  if (null == vaultRouter) vaultRouter = await readVaultRouterContract();
   await handleTx(
     vaultRouter.initialize(coreVaultAddr, feeRouterAddr),
     "vaultRouter.initialize"
@@ -133,4 +143,5 @@ module.exports = {
   priceDecimals,
   sellLpFee,
   buyLpFee,
+  initializeVaultRouter
 };

@@ -1,25 +1,44 @@
 const {
 	deployOrConnect,
+	deployContract,
 	readDeployedContract,
 	handleTx,
+	readContractAddresses,
 	writeContractAddresses,
+	getContractAt,
+	deployUpgradeable
 } = require("../utils/helpers");
 
-async function deployMarketRouter(writeJson) {
-	const router = await deployOrConnect("MarketRouter", []);
-
+async function deployMarketRouter({
+	deploy = deployContract,
+	marketFactory,
+	writeJson = true
+} = {}) {
+	const { implementation, proxy } = await deployUpgradeable("MarketRouter", "MarketRouter")
 	const result = {
-		MarketRouter: router.address
+		MarketRouter: proxy.address,
+		["MarketRouterImpl"]: implementation.address,
 	};
-	if (writeJson)
-		writeContractAddresses(result)
-
-	return router;
+	const newContract = await getContractAt("MarketRouter", proxy.address)
+	if (writeJson) writeContractAddresses(result);
+	return newContract
 }
 
 async function readMarketRouterContract() {
-	const router = await readDeployedContract("MarketRouter");
-	return router;
+	let existingObj = readContractAddresses()
+	const newContract = await getContractAt(
+		"MarketRouter",
+		existingObj['MarketRouter']
+	)
+	return newContract
+}
+
+async function setIsEnableMarketConvertToOrder(_enable) {
+	const contract = await readMarketRouterContract()
+	await handleTx(
+		contract.setIsEnableMarketConvertToOrder(_enable),
+		"setIsEnableMarketConvertToOrder"
+	)
 }
 
 async function initializeRouter(globalValidAddr, vaultRouterAddr) {
@@ -48,6 +67,7 @@ async function removeMarket(marketAddr) {
 
 module.exports = {
 	deployMarketRouter,
+	setIsEnableMarketConvertToOrder,
 	readMarketRouterContract,
 	initializeRouter,
 	addMarket,

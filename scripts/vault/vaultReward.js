@@ -4,17 +4,22 @@ const {
   handleTx,
   grantRoleIfNotGranted,
   writeContractAddresses,
+  deployUpgradeable,
+  getContractAt
 } = require("../utils/helpers");
 
-async function deployVaultReward(writeJson) {
-  const reward = await deployOrConnect("VaultReward", []);
-
+async function deployVaultReward(writeJson = true) {
+  const { implementation, proxy } = await deployUpgradeable(
+    "VaultReward",
+    "VaultReward"
+  )
   const result = {
-    VaultReward: reward.address,
+    VaultReward: proxy.address,
+    ["VaultRewardImpl"]: implementation.address,
   };
   if (writeJson) writeContractAddresses(result);
 
-  return reward;
+  return getContractAt("VaultReward", proxy.address)
 }
 
 async function readVaultRewardContract() {
@@ -31,6 +36,25 @@ async function initialize(
   const reward = await readVaultRewardContract();
   await handleTx(
     reward.initialize(
+      coreVaultAddr,
+      vaultRouterAddr,
+      feeRouterAddr,
+      distributorAddr
+    ),
+    "reward.initialize"
+  );
+}
+
+async function initializeVaultReward(
+  coreVaultAddr,
+  vaultRouterAddr,
+  feeRouterAddr,
+  distributorAddr,
+  vaultReward = null
+) {
+  if (null == vaultReward) vaultReward = await readVaultRewardContract();
+  await handleTx(
+    vaultReward.initialize(
       coreVaultAddr,
       vaultRouterAddr,
       feeRouterAddr,
@@ -154,7 +178,7 @@ async function claimable(account) {
 module.exports = {
   deployVaultReward,
   readVaultRewardContract,
-  initialize,
+  initializeVaultReward,
   setAPR,
   buy,
   sell,

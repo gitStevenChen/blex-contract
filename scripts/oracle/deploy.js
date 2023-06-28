@@ -27,7 +27,7 @@ async function deployOracle(configs, writeJson, isInit = true) {
 	}
 
 	return {
-		price: price,
+		priceFeed: price,
 		chainPrice: chainPrice,
 		fastPrice: fastPrice,
 	}

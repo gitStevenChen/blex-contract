@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
-
 import {IMarketValid} from "./interfaces/IMarketValid.sol";
 
 library MarketConfigStruct {
@@ -16,6 +15,7 @@ library MarketConfigStruct {
     uint256 private constant ALLOW_OPEN_MASK =            0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0fffffffffFFFFFFFFFFFFFFFFFF; // prettier-ignore
     uint256 private constant DECIMALS_MASK =              0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00FfffffffffFFFFFFFFFFFFFFFFFF; // prettier-ignore
     uint256 private constant DECREASE_NUM_LIMIT_MASK =    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000FFFfffffffffFFFFFFFFFFFFFFFFFF; // prettier-ignore
+    uint256 private constant VALID_DECREASE_MASK =        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0FFFFFFfffffffffFFFFFFFFFFFFFFFFFF; // prettier-ignore
 
     uint256 constant MAX_SLIPPAGE_BIT_POSITION = 3 * 4; // one digt = 0.5 byte = 4 bit
     uint256 constant MIN_LEV_BIT_POSITION = 3 * 4 * 2;
@@ -26,10 +26,10 @@ library MarketConfigStruct {
     uint256 constant ALLOW_CLOSE_BIT_POSITION = 3 * 4 * 6 + 4 * 8;
     uint256 constant ALLOW_OPEN_BIT_POSITION = 3 * 4 * 6 + 4 * 8 + 4;
     uint256 constant DECIMALS_BIT_POSITION = 3 * 4 * 6 + 4 * 8 + 4 + 4;
-    uint256 constant DECREASE_NUM_LIMIT_BIT_POSITION =
-        3 * 4 * 6 + 4 * 8 + 4 + 4 + 8;
+    uint256 constant DECREASE_NUM_LIMIT_BIT_POSITION = 120;
+    uint256 constant VALID_DECREASE_BIT_POSITION = 120 + 4;
 
-    uint256 constant DENOMINATOR_SLIPPAGE = 10 ** 4;
+    uint256 constant DENOMINATOR_SLIPPAGE = 10 ** 4; // 分母
 
     function setMinSlippage(
         IMarketValid.Props memory self,
@@ -93,8 +93,6 @@ library MarketConfigStruct {
         self.data =
             (self.data & MAX_LEV_MASK) |
             (minSp << MAX_LEV_BIT_POSITION);
-
-        //
     }
 
     function getMaxLev(
@@ -196,6 +194,21 @@ library MarketConfigStruct {
         self.data =
             (self.data & ALLOW_CLOSE_MASK) |
             (uint256(allow ? 1 : 0) << ALLOW_CLOSE_BIT_POSITION);
+    }
+
+    function getEnableValidDecrease(
+        IMarketValid.Props memory self
+    ) internal pure returns (bool) {
+        return (self.data & ~VALID_DECREASE_MASK) != 0;
+    }
+
+    function setEnableValidDecrease(
+        IMarketValid.Props memory self,
+        bool allow
+    ) internal pure {
+        self.data =
+            (self.data & VALID_DECREASE_MASK) |
+            (uint256(allow ? 1 : 0) << VALID_DECREASE_BIT_POSITION);
     }
 
     function getAllowClose(

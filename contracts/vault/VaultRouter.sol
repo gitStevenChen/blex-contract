@@ -8,11 +8,11 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {IMarket} from "../market/interfaces/IMarket.sol";
 import {ICoreVault} from "./interfaces/ICoreVault.sol";
 import {IFeeRouter} from "../fee/interfaces/IFeeRouter.sol";
-import {Ac} from "../ac/Ac.sol";
+import {AcUpgradable} from "../ac/AcUpgradable.sol";
 import {TransferHelper} from "../utils/TransferHelper.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract VaultRouter is Ac, ReentrancyGuard {
+contract VaultRouter is AcUpgradable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -28,15 +28,14 @@ contract VaultRouter is Ac, ReentrancyGuard {
     mapping(address => ICoreVault) public marketVaults;
     mapping(ICoreVault => address) public vaultMarkets;
 
-    constructor() Ac(msg.sender) {}
-
     event LogIsFreeze(bool isFreeze);
 
-    function setIsFreeze(bool f) external {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "temporary freeze, please contact customer service"
-        );
+    modifier onlyMarket() {
+        require(markets.contains(msg.sender), "invalid market");
+        _;
+    }
+
+    function setIsFreeze(bool f) external onlyFreezer {
         isFreeze = f;
         coreVault.setIsFreeze(f);
         emit LogIsFreeze(f);
@@ -45,7 +44,8 @@ contract VaultRouter is Ac, ReentrancyGuard {
     function initialize(
         address _coreVault,
         address _feeRouter
-    ) public initializeLock {
+    ) public initializer {
+        AcUpgradable._initialize(msg.sender);
         coreVault = ICoreVault(_coreVault);
         feeRouter = IFeeRouter(_feeRouter);
     }
@@ -107,7 +107,6 @@ contract VaultRouter is Ac, ReentrancyGuard {
         uint256 amount
     ) external onlyController {
         require(false == isFreeze, "freeze");
-
         ICoreVault vault = marketVaults[msg.sender];
         if (vault.verifyOutAssets(to, amount)) {
             vault.transferOutAssets(to, amount);
@@ -121,7 +120,7 @@ contract VaultRouter is Ac, ReentrancyGuard {
      *         The function updates the funds used in the market by the borrowed amount, using the 'updateFundsUsed' internal function.
      *         The borrowed tokens will be transferred to the caller's address.
      */
-    function borrowFromVault(uint256 amount) external {
+    function borrowFromVault(uint256 amount) external onlyMarket {
         require(false == isFreeze, "freeze");
 
         require(markets.contains(msg.sender), "invalid market");
@@ -133,10 +132,8 @@ contract VaultRouter is Ac, ReentrancyGuard {
      * @param amount The amount of borrowed funds to be repaid.
      * The function checks if the market contract calling the function is a valid market. If the market is valid, it calls the "updateFundsUsed" function to update the amount of funds used by the market. The "amount" parameter is used to specify the amount of funds being repaid. Once the update is completed, the borrowed funds are returned to the Vault contract, and the function completes execution.
      */
-    function repayToVault(uint256 amount) external {
+    function repayToVault(uint256 amount) external onlyMarket {
         require(false == isFreeze, "freeze");
-
-        require(markets.contains(msg.sender), "invalid market");
         updateFundsUsed(msg.sender, amount, false);
     }
 
@@ -244,4 +241,6 @@ contract VaultRouter is Ac, ReentrancyGuard {
     function buyLpFee(ICoreVault vault) external view returns (uint256) {
         return vault.getLPFee(true);
     }
+
+    uint256[50] private ______gap;
 }
