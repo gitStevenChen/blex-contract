@@ -17,4 +17,6 @@ artifacts
 
 .DS_Store
 yarn-error.log
-
+contract-addresses-localhost-BTC.json
+contract-addresses-localhost-ETH.json
+contract-addresses-localhost.json
