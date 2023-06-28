@@ -28,7 +28,7 @@ module.exports = {
     avalancheTest: {
       url: "https://rpc.ankr.com/avalanche_fuji",
       chainId: 43113,
-      accounts: process.env.PRIVATE_KEY,
+      accounts: [process.env.PRIVATE_KEY],
       gas: 8000000,
       gasPrice: 25000000000,
     },
@@ -36,7 +36,7 @@ module.exports = {
       url: "https://goerli-rollup.arbitrum.io/rpc",
       chainId: 421613,
       gas: 8000000,
-      accounts: process.env.PRIVATE_KEY,
+      accounts: [process.env.PRIVATE_KEY],
       gasPrice: 25000000000,
     },
   },
