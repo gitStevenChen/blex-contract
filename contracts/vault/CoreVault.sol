@@ -24,14 +24,21 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
     bool public isFreeze = false;
 
     IFeeRouter public feeRouter;
+    // 存储每个账户上一次存款的时间戳
     mapping(address => uint256) public lastDepositAt;
+    // 取款操作的冷却时间
     uint256 public cooldownDuration;
+    // 精确表示费率（fee rate）的倍数
     uint256 public constant FEE_RATE_PRECISION = Precision.FEE_RATE_PRECISION;
+    // 买入LP（流动性提供者）时的费用
     uint256 public buyLpFee;
+    // 卖出LP时的费用
     uint256 public sellLpFee;
+    // 当取款操作的冷却时间被更新时，该事件会被触发
     event CoolDownDurationUpdated(uint256 duration);
+    // 买入或卖出LP的费用被更新时，该事件会被触发
     event LPFeeUpdated(bool isBuy, uint256 fee);
-
+    // 当用户进行存款操作时，该事件会被触发，记录存款的相关信息
     event DepositAsset(
         address indexed sender,
         address indexed owner,
@@ -39,7 +46,7 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
         uint256 shares,
         uint256 fee
     );
-
+    // 当用户进行取款操作时，该事件会被触发，记录取款的相关信息
     event WithdrawAsset(
         address indexed sender,
         address indexed receiver,
@@ -48,7 +55,7 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
         uint256 shares,
         uint256 fee
     );
-
+    // 初始化，修饰器initializer，参数_asset是资金池的代币地址(比如USDC)，AcUpgradable是角色权限管理
     function initialize(
         address _asset,
         string memory _name,
@@ -61,6 +68,7 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
         AcUpgradable._initialize(msg.sender);
 
         vaultRouter = IVaultRouter(_vaultRouter);
+        // 将一个角色（role）授予指定地址(open的方法)
         _grantRole(ROLE_CONTROLLER, _vaultRouter);
         feeRouter = IFeeRouter(_feeRouter);
 
