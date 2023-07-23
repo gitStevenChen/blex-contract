@@ -92,14 +92,14 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
         cooldownDuration = _duration;
         emit CoolDownDurationUpdated(_duration);
     }
-
+    // 将资产转移至指定地址，是从保险库转到用户地址，onlyController是只有角色是ROLE_CONTROLLER的地址才能调用，safeTransfer
     function transferOutAssets(
         address to,
         uint256 amount
     ) external override onlyController {
         SafeERC20.safeTransfer(IERC20(asset()), to, amount);
     }
-
+    // 获取Vault中管理的总资产数量（Total Supply）
     function totalAssets()
         public
         view
@@ -108,7 +108,7 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
     {
         return vaultRouter.getAUM();
     }
-
+    // 根据交易类型和交易数量计算交易成本
     function computationalCosts(
         bool isBuy,
         uint256 amount
@@ -123,7 +123,7 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
     function getLPFee(bool isBuy) public view override returns (uint256) {
         return isBuy ? buyLpFee : sellLpFee;
     }
-
+    // super._convertToShares是erc4626的函数，返回保险库为给定数量的底层资产兑换的份额数量(USDC -> BLP)
     function _convertToShares(
         uint256 assets,
         Math.Rounding rounding
@@ -136,7 +136,7 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
                 (shares * FEE_RATE_PRECISION) /
                 (FEE_RATE_PRECISION - sellLpFee);
     }
-
+    // 返回保险库为给定数量的份额兑换的底层资产数量(BLP -> USDC)
     function _convertToAssets(
         uint256 shares,
         Math.Rounding rounding
@@ -148,7 +148,7 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
                 (assets * FEE_RATE_PRECISION) / (FEE_RATE_PRECISION - buyLpFee);
         else return assets - computationalCosts(isBuy, assets);
     }
-
+    // 将交易产生的手续费转移到指定账户（feeVault）
     function _transFeeTofeeVault(
         address account,
         address _asset,
@@ -168,9 +168,9 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
         );
         feeRouter.collectFees(account, _asset, fees);
     }
-
+    // 表示Vault中的特定份额数量
     uint256 constant NUMBER_OF_DEAD_SHARES = 1000;
-
+    // 存入底层资产，铸造股权代币，并将股权份额授予接收者
     function _deposit(
         address caller,
         address receiver,
