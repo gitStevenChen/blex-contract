@@ -13,6 +13,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {AcUpgradable} from "../ac/AcUpgradable.sol";
 import "hardhat/console.sol";
 
+// Rewards页面的接口
 contract VaultReward is AcUpgradable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeCast for int256;
