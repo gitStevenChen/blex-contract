@@ -168,9 +168,9 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
         );
         feeRouter.collectFees(account, _asset, fees);
     }
-    // 表示Vault中的特定份额数量
+    // 初始Vault中的BLP数量
     uint256 constant NUMBER_OF_DEAD_SHARES = 1000;
-    // 存入底层资产，铸造股权代币，并将股权份额授予接收者
+    // 存入底层资产，铸造股权代币，并将股权份额授予接收者(mint(receiver shares))，USDC从caller -> address(this)
     function _deposit(
         address caller,
         address receiver,
@@ -179,7 +179,9 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
     ) internal override {
         require(false == isFreeze, "vault freeze");
         lastDepositAt[receiver] = block.timestamp;
+        // 冗余计算，确保获得的资产数量不会低于用户传递的 Vault 份额数量，使用 s_assets 可以保证用户在存款操作时，不会因为计算精度问题而存入过少的资产
         uint256 s_assets = super._convertToAssets(shares, Math.Rounding.Up);
+        // 如果实际存入的资产数量大于用户期望的数量，cost 表示用户需要额外支付的费用；如果实际存入的资产数量小于用户期望的数量，cost 表示用户实际存入的额外资产
         uint256 cost = assets > s_assets
             ? assets - s_assets
             : s_assets - assets;
@@ -194,7 +196,7 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
 
         emit DepositAsset(caller, receiver, assets, shares, cost);
     }
-
+    // 烧掉股权代币，取回底层资产
     function _withdraw(
         address caller,
         address receiver,
@@ -234,6 +236,6 @@ contract CoreVault is ERC4626, AcUpgradable, ICoreVault {
     ) external view override returns (bool) {
         return true;
     }
-
+    // 一个长度为50的私有（private）状态变量，用于填充以保持向后兼容性
     uint256[50] private ______gap;
 }
