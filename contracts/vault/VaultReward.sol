@@ -18,19 +18,25 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeCast for int256;
     using SafeERC20 for IERC20;
+    // PRECISION常量用于执行精确的计算，这里设置为1e30，即10的30次方
     uint256 public constant PRECISION = 1e30;
 
     IFeeRouter public feeRouter;
     ICoreVault public coreVault;
 
     IVaultRouter public vaultRouter;
+    // LP代币的累积奖励（即USDC的累积奖励）
     uint256 public cumulativeRewardPerToken;
     address public distributor;
+    // 年化收益率
     uint256 public apr;
-
+    // 记录每个LP代币上次累积奖励的值
     mapping(address => uint256) public previousCumulatedRewardPerToken;
+    // 每个LP代币已赚取的奖励数量
     mapping(address => uint256) public lpEarnedRewards;
+    // 每个LP代币可以领取的奖励数量
     mapping(address => uint256) public claimableReward;
+    // 每个LP代币的平均贡献量
     mapping(address => uint256) public averageStakedAmounts;
 
     function initialize(
