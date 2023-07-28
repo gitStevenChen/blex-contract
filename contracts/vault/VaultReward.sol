@@ -25,16 +25,16 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
     ICoreVault public coreVault;
 
     IVaultRouter public vaultRouter;
-    // LP代币的累积奖励（即USDC的累积奖励）
+    // LP的累积奖励（即USDC的系统累积奖励）
     uint256 public cumulativeRewardPerToken;
     address public distributor;
     // 年化收益率
     uint256 public apr;
-    // 记录每个LP代币上次累积奖励的值
+    // 用户累积的奖励数量
     mapping(address => uint256) public previousCumulatedRewardPerToken;
-    // 每个LP代币已赚取的奖励数量
+    // 用户已的奖励数量
     mapping(address => uint256) public lpEarnedRewards;
-    // 每个LP代币可以领取的奖励数量
+    // 用户可以领取的奖励数量（领过后要置为0）
     mapping(address => uint256) public claimableReward;
     // 每个LP代币的平均贡献量
     mapping(address => uint256) public averageStakedAmounts;
@@ -113,10 +113,14 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
      * Finally, the `transferFromVault` function of the `vaultRouter` contract is called to transfer the rewards
      * from the market's vault to the LP's account.
      */
+    // 领取奖励
     function claimLPReward() public nonReentrant {
+        // 没有投资不能领取
         require(coreVault.balanceOf(msg.sender) > 0, "youn't LP");
         address _account = msg.sender;
+        // 更新奖励
         _updateRewards(_account);
+        // 从claimableReward取出用户可领取的奖励，置为0并转账给用户
         uint256 tokenAmount = claimableReward[_account];
         claimableReward[_account] = 0;
         IERC20(rewardToken()).safeTransfer(msg.sender, tokenAmount);
@@ -127,6 +131,7 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
      * @dev This function is used to update rewards.
      * @notice function can only be called without reentry.
      */
+    // 更新所有用户的奖励（目前不用到）
     function updateRewards() external nonReentrant {
         _updateRewards(address(0));
     }
@@ -138,11 +143,13 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
      * @notice function can only be called without reentry.
      * @param _account needs to update the account address for rewards. If it is 0, the rewards for all accounts will be updated.
      */
+    // 更新用户的奖励具体逻辑（目前只支持更新单个用户）
     function _updateRewards(address _account) private {
+        // RewardDistributor得到区块时间间隔奖励数量
         uint256 blockReward = IRewardDistributor(distributor).distribute();
         uint256 supply = coreVault.totalSupply();
         uint256 _cumulativeRewardPerToken = cumulativeRewardPerToken;
-
+        // 计算新的奖励数量_cumulativeRewardPerToken
         if (supply > 0 && blockReward > 0) {
             _cumulativeRewardPerToken =
                 _cumulativeRewardPerToken +
@@ -157,17 +164,19 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
         if (_cumulativeRewardPerToken == 0) {
             return;
         }
-
+        // 单个用户更新奖励
         if (_account != address(0)) {
+            // 用户USDC的余额，即放到资金池的有多少
             uint256 stakedAmount = stakedAmounts(_account);
+            // 根据投资比例计算用户的奖励（USDC的数量）
             uint256 accountReward = (stakedAmount *
                 (_cumulativeRewardPerToken -
                     previousCumulatedRewardPerToken[_account])) / PRECISION;
-
+            // 更新用户可领取的奖励
             uint256 _claimableReward = claimableReward[_account] +
                 accountReward;
-
             claimableReward[_account] = _claimableReward;
+            // 更新用户累计奖金的值
             previousCumulatedRewardPerToken[
                 _account
             ] = _cumulativeRewardPerToken;
