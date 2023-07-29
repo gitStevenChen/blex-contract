@@ -30,13 +30,13 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
     address public distributor;
     // 年化收益率
     uint256 public apr;
-    // 用户累积的奖励数量
+    // 用户累积的奖励数量（BLP）
     mapping(address => uint256) public previousCumulatedRewardPerToken;
-    // 用户已的奖励数量
+    // 用户已赚取的奖励数量（USDC）
     mapping(address => uint256) public lpEarnedRewards;
     // 用户可以领取的奖励数量（领过后要置为0）
     mapping(address => uint256) public claimableReward;
-    // 每个LP代币的平均贡献量
+    // 用户的平均质押金额
     mapping(address => uint256) public averageStakedAmounts;
 
     function initialize(
@@ -149,7 +149,7 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
         uint256 blockReward = IRewardDistributor(distributor).distribute();
         uint256 supply = coreVault.totalSupply();
         uint256 _cumulativeRewardPerToken = cumulativeRewardPerToken;
-        // 计算新的奖励数量_cumulativeRewardPerToken
+        // 计算新的奖励数量_cumulativeRewardPerToken（BLP的数量）
         if (supply > 0 && blockReward > 0) {
             _cumulativeRewardPerToken =
                 _cumulativeRewardPerToken +
@@ -176,7 +176,7 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
             uint256 _claimableReward = claimableReward[_account] +
                 accountReward;
             claimableReward[_account] = _claimableReward;
-            // 更新用户累计奖金的值
+            // 更新用户累计奖金的值（BLP的数量）
             previousCumulatedRewardPerToken[
                 _account
             ] = _cumulativeRewardPerToken;
