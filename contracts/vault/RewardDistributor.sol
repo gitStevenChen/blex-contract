@@ -8,6 +8,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {IVaultReward} from "./interfaces/IVaultReward.sol";
 import "../ac/Ac.sol";
 
+// 管理奖励的设置和发送
 contract RewardDistributor is Ac {
     using SafeERC20 for IERC20;
 
