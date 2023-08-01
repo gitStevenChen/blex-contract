@@ -204,6 +204,7 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
      * The function returns the amount of rewards earned by the calling account as a `uint256`.
      * @return The amount of rewards earned by the calling account as a `uint256`.
      */
+    // 用户当前回报的金额
     function getLPReward() public view returns (uint256) {
         if (lpEarnedRewards[msg.sender] == 0) return 0;
 
@@ -216,6 +217,7 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
      * The `getLPPrice` function returns the current price of LP tokens in the market, which is then returned by this function as a `uint256`.
      * @return The current price of LP tokens in the market as a `uint256`.
      */
+    // BLP的价格
     function getLPPrice() public view returns (uint256) {
         uint256 assets = coreVault.totalAssets();
         uint256 supply = coreVault.totalSupply();
@@ -224,11 +226,13 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
     }
 
     /** @dev See {IERC4626-previewDeposit}. */
+    // erc4626的token转换功能（USDC -> BLP）
     function previewDeposit(uint256 assets) external view returns (uint256) {
         return coreVault.previewDeposit(assets);
     }
 
     /** @dev See {IERC4626-previewMint}. */
+    // erc4626的token转换功能（BLP -> USDC）
     function previewMint(uint256 shares) external view returns (uint256) {
         return coreVault.previewMint(shares);
     }
@@ -258,6 +262,7 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
      * The AUM represents the total value of assets held in the market, including both the LP tokens and any other tokens held by the market.
      * @return The current AUM of the market as a `uint256`.
      */
+    // 资产总额
     function getAUM() public view returns (uint256) {
         return vaultRouter.getAUM();
     }
@@ -304,10 +309,12 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
      * The function calls the `tokensPerInterval` function of the `IRewardDistributor` contract, which returns the number of reward tokens distributed per interval as a `uint256`.
      * @return The number of reward tokens distributed per interval in the market as a `uint256`.
      */
+    // 每个区块间隔奖励的数量
     function tokensPerInterval() external view returns (uint256) {
         return IRewardDistributor(distributor).tokensPerInterval();
     }
 
+    // 奖励的代币地址
     function rewardToken() public view returns (address) {
         return coreVault.asset();
     }
@@ -327,6 +334,7 @@ contract VaultReward is AcUpgradable, ReentrancyGuard {
      * @param _account The user's account address.
      * @return The amount of rewards claimable by the user in the market as a `uint256`.
      */
+    // 用户可获得的奖励
     function claimable(address _account) public view returns (uint256) {
         uint256 stakedAmount = stakedAmounts(_account);
         if (stakedAmount == 0) {
