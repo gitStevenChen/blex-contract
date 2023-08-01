@@ -156,6 +156,7 @@ abstract contract ERC4626 is ERC20, IERC4626 {
     }
 
     /** @dev See {IERC4626-deposit}. */
+    // 存
     function deposit(
         uint256 assets,
         address receiver
@@ -164,7 +165,7 @@ abstract contract ERC4626 is ERC20, IERC4626 {
             assets <= maxDeposit(receiver),
             "ERC4626: deposit more than max"
         );
-
+        //根据存的USDC计算相应的BLP数量
         uint256 shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
 
