@@ -23,7 +23,9 @@ contract VaultRouter is AcUpgradable, ReentrancyGuard {
     EnumerableSet.AddressSet private vaults;
     bool public isFreeze = false;
 
+    //总共使用的资金（market + vault）
     uint256 public totalFundsUsed;
+    // 使用的资金（market & vault）
     mapping(address => uint256) public fundsUsed;
     mapping(address => ICoreVault) public marketVaults;
     mapping(ICoreVault => address) public vaultMarkets;
@@ -82,6 +84,7 @@ contract VaultRouter is AcUpgradable, ReentrancyGuard {
      * @param amount The amount of tokens to be transferred to the vault.
      * @notice This function can only be called by a contract with the MARKET_ROLE.
      */
+    // 用户 -> 资金池
     function transferToVault(
         address account,
         uint256 amount
@@ -102,6 +105,7 @@ contract VaultRouter is AcUpgradable, ReentrancyGuard {
      * @param to The address to transfer the assets to.
      * @param amount The amount of assets to transfer.
      */
+    // 资金池 -> 用户
     function transferFromVault(
         address to,
         uint256 amount
@@ -120,6 +124,7 @@ contract VaultRouter is AcUpgradable, ReentrancyGuard {
      *         The function updates the funds used in the market by the borrowed amount, using the 'updateFundsUsed' internal function.
      *         The borrowed tokens will be transferred to the caller's address.
      */
+    // market增加使用金额
     function borrowFromVault(uint256 amount) external onlyMarket {
         require(false == isFreeze, "freeze");
 
@@ -132,6 +137,7 @@ contract VaultRouter is AcUpgradable, ReentrancyGuard {
      * @param amount The amount of borrowed funds to be repaid.
      * The function checks if the market contract calling the function is a valid market. If the market is valid, it calls the "updateFundsUsed" function to update the amount of funds used by the market. The "amount" parameter is used to specify the amount of funds being repaid. Once the update is completed, the borrowed funds are returned to the Vault contract, and the function completes execution.
      */
+    // market减少使用金额
     function repayToVault(uint256 amount) external onlyMarket {
         require(false == isFreeze, "freeze");
         updateFundsUsed(msg.sender, amount, false);
